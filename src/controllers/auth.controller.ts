@@ -40,6 +40,18 @@ export const register = asyncHandler(async (req: RequestWithTraceContext, res: R
   const { traceId, spanId } = req;
   const { email, password, firstName, lastName, phoneNumber } = req.body;
 
+  // DEBUG: Log what web-bff receives and forwards
+  logger.info('Registration request received at BFF', {
+    traceId,
+    spanId,
+    bodyKeys: Object.keys(req.body),
+    hasFirstName: !!firstName,
+    hasLastName: !!lastName,
+    firstNameValue: firstName,
+    lastNameValue: lastName,
+    rawBody: JSON.stringify(req.body),
+  });
+
   logger.info('Registration attempt', {
     traceId,
     spanId,

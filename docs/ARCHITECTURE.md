@@ -554,7 +554,6 @@ spec:
 | ----------- | -------------------- | -------------------------------------------------------- |
 | Local       | Docker + Dapr        | [LOCAL_DEVELOPMENT_DAPR.md](./LOCAL_DEVELOPMENT_DAPR.md) |
 | Azure       | Azure Container Apps | [ACA_DEPLOYMENT.md](./ACA_DEPLOYMENT.md)                 |
-| Kubernetes  | AKS with Dapr        | [AKS_DEPLOYMENT.md](./AKS_DEPLOYMENT.md)                 |
 
 ---
 

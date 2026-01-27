@@ -84,7 +84,7 @@ LOG_TO_FILE=false
 LOG_FILE_PATH=./logs/web-bff.log
 
 # Direct Service URLs (for non-Dapr mode)
-AUTH_SERVICE_URL=http://localhost:1004
+AUTH_SERVICE_URL=http://localhost:8003
 USER_SERVICE_URL=http://localhost:8002
 PRODUCT_SERVICE_URL=http://localhost:8001
 INVENTORY_SERVICE_URL=http://localhost:8004

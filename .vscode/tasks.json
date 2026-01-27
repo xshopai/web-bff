@@ -8,9 +8,9 @@
       "args": [
         "run",
         "--app-id", "web-bff",
-        "--app-port", "3100",
-        "--dapr-http-port", "3600",
-        "--dapr-grpc-port", "50060",
+        "--app-port", "8014",
+        "--dapr-http-port", "3514",
+        "--dapr-grpc-port", "50014",
         "--resources-path", ".dapr/components",
         "--config", ".dapr/config.yaml",
         "--log-level", "warn"

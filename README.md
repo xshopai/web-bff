@@ -12,6 +12,7 @@ API aggregation and orchestration service for xshopai - provides a unified API l
 ### Setup
 
 **1. Clone & Install**
+
 ```bash
 git clone https://github.com/xshopai/web-bff.git
 cd web-bff
@@ -19,24 +20,27 @@ npm install
 ```
 
 **2. Configure Environment**
+
 ```bash
 # Copy environment template
 cp .env.example .env
 
 # Edit .env - update these values:
 # JWT_SECRET=your-secret-key-change-in-production
-# AUTH_SERVICE_URL=http://localhost:1004
+# AUTH_SERVICE_URL=http://localhost:8003
 # USER_SERVICE_URL=http://localhost:8002
 # PRODUCT_SERVICE_URL=http://localhost:8001
 ```
 
 **3. Initialize Dapr**
+
 ```bash
 # First time only
 dapr init
 ```
 
 **4. Run Service**
+
 ```bash
 # Start with Dapr (recommended)
 npm run dev
@@ -47,6 +51,7 @@ npm run dev
 ```
 
 **5. Verify**
+
 ```bash
 # Check health
 curl http://localhost:3100/health
@@ -81,11 +86,11 @@ npm start
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
+| Document                                      | Description                             |
+| --------------------------------------------- | --------------------------------------- |
 | [📖 Developer Guide](docs/DEVELOPER_GUIDE.md) | Local setup, debugging, daily workflows |
-| [📘 Technical Reference](docs/TECHNICAL.md) | Architecture, security, monitoring |
-| [🤝 Contributing](docs/CONTRIBUTING.md) | Contribution guidelines and workflow |
+| [📘 Technical Reference](docs/TECHNICAL.md)   | Architecture, security, monitoring      |
+| [🤝 Contributing](docs/CONTRIBUTING.md)       | Contribution guidelines and workflow    |
 
 **API Documentation**: See `src/routes/` for endpoint definitions and `tests/integration/` for API contract examples.
 
@@ -134,6 +139,7 @@ See [.env.example](.env.example) for complete configuration options.
 ## 🏗️ Architecture
 
 **BFF Pattern (Backend for Frontend):**
+
 ```
 Web Client → Web BFF → Multiple Microservices
                 ↓
@@ -141,6 +147,7 @@ Web Client → Web BFF → Multiple Microservices
 ```
 
 **Key Responsibilities:**
+
 - Aggregate data from auth-service, user-service, product-service, etc.
 - Transform responses to match web client requirements
 - Handle session management and authentication
@@ -149,6 +156,7 @@ Web Client → Web BFF → Multiple Microservices
 - Provide optimized endpoints for web UI
 
 **Service Communication:**
+
 - Uses Dapr service invocation for inter-service calls
 - Implements circuit breaker patterns
 - Handles retries and timeouts

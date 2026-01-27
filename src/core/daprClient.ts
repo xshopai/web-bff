@@ -47,12 +47,14 @@ class DaprClientService {
         ...metadata?.headers,
       };
 
-      // console.log(`[Dapr] Making HTTP call with headers:`, {
-      //   url: daprUrl,
-      //   method: httpMethod.toUpperCase(),
-      //   headers: fetchHeaders,
-      //   hasData: !!data,
-      // });
+      // DEBUG: Log what Dapr client is sending
+      logger.info(`[Dapr] Invoking ${appId}/${cleanMethodName}`, {
+        url: daprUrl,
+        method: httpMethod.toUpperCase(),
+        hasData: !!data,
+        dataKeys: data && typeof data === 'object' ? Object.keys(data as object) : 'N/A',
+        dataPayload: JSON.stringify(data),
+      });
 
       const response = await fetch(daprUrl, {
         method: httpMethod.toUpperCase(),
