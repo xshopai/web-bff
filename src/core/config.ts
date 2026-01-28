@@ -44,7 +44,7 @@ const config: Config = {
     httpPort: parseInt(process.env.DAPR_HTTP_PORT || '3500', 10),
     grpcPort: parseInt(process.env.DAPR_GRPC_PORT || '50001', 10),
     appPort: parseInt(process.env.PORT || '8080', 10),
-    pubsubName: process.env.DAPR_PUBSUB_NAME || 'web-bff-pubsub',
+    pubsubName: 'pubsub',
   },
   services: {
     product: process.env.PRODUCT_SERVICE_APP_ID || 'product-service',

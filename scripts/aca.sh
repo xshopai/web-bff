@@ -92,6 +92,7 @@ PROJECT_NAME="xshopai"
 # (different from local dev where each service has unique ports per PORT_CONFIGURATION.md)
 DAPR_HTTP_PORT=3500
 DAPR_GRPC_PORT=50001
+DAPR_PUBSUB_NAME="pubsub"
 
 # Get script directory and service directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -306,6 +307,7 @@ ENV_VARS+=("ALLOWED_ORIGINS=$CORS_ORIGIN")
 ENV_VARS+=("DAPR_HTTP_PORT=$DAPR_HTTP_PORT")
 ENV_VARS+=("DAPR_GRPC_PORT=$DAPR_GRPC_PORT")
 ENV_VARS+=("DAPR_APP_ID=$SERVICE_NAME")
+ENV_VARS+=("DAPR_PUBSUB_NAME=$DAPR_PUBSUB_NAME")
 
 # Backend service Dapr app IDs
 ENV_VARS+=("AUTH_SERVICE_APP_ID=auth-service")
