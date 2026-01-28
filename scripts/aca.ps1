@@ -62,9 +62,11 @@ $ServiceVersion = "1.0.0"
 $AppPort = 8014
 $ProjectName = "xshopai"
 
-# Dapr configuration (per PORT_CONFIGURATION.md: web-bff = 3514/50014)
-$DaprHttpPort = 3514
-$DaprGrpcPort = 50014
+# Dapr configuration
+# In Azure Container Apps, Dapr sidecar ALWAYS runs on port 3500/50001
+# (different from local dev where each service has unique ports per PORT_CONFIGURATION.md)
+$DaprHttpPort = 3500
+$DaprGrpcPort = 50001
 
 # Get script directory and service directory
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

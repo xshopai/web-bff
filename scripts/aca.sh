@@ -87,9 +87,11 @@ SERVICE_VERSION="1.0.0"
 APP_PORT=8014
 PROJECT_NAME="xshopai"
 
-# Dapr configuration (per PORT_CONFIGURATION.md: web-bff = 3514/50014)
-DAPR_HTTP_PORT=3514
-DAPR_GRPC_PORT=50014
+# Dapr configuration
+# In Azure Container Apps, Dapr sidecar ALWAYS runs on port 3500/50001
+# (different from local dev where each service has unique ports per PORT_CONFIGURATION.md)
+DAPR_HTTP_PORT=3500
+DAPR_GRPC_PORT=50001
 
 # Get script directory and service directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -300,7 +302,7 @@ ENV_VARS+=("VERSION=$SERVICE_VERSION")
 ENV_VARS+=("PORT=$APP_PORT")
 ENV_VARS+=("HOST=0.0.0.0")
 ENV_VARS+=("LOG_LEVEL=$LOG_LEVEL")
-ENV_VARS+=("CORS_ORIGIN=$CORS_ORIGIN")
+ENV_VARS+=("ALLOWED_ORIGINS=$CORS_ORIGIN")
 ENV_VARS+=("DAPR_HTTP_PORT=$DAPR_HTTP_PORT")
 ENV_VARS+=("DAPR_GRPC_PORT=$DAPR_GRPC_PORT")
 ENV_VARS+=("DAPR_APP_ID=$SERVICE_NAME")
