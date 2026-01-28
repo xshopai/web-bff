@@ -87,9 +87,9 @@ SERVICE_VERSION="1.0.0"
 APP_PORT=8014
 PROJECT_NAME="xshopai"
 
-# Dapr configuration
-DAPR_HTTP_PORT=3500
-DAPR_GRPC_PORT=50001
+# Dapr configuration (per PORT_CONFIGURATION.md: web-bff = 3514/50014)
+DAPR_HTTP_PORT=3514
+DAPR_GRPC_PORT=50014
 
 # Get script directory and service directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
