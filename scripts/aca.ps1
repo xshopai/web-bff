@@ -1,70 +1,40 @@
 # ============================================================================
-# Azure Container Apps Deployment Script for Web BFF
+# Azure Container Apps Deployment Script for Web BFF (PowerShell)
 # ============================================================================
-# This script automates the deployment of Web BFF to Azure Container Apps
-# with Dapr support for service invocation to backend microservices.
+# This script deploys the Web BFF to Azure Container Apps.
+# 
+# PREREQUISITE: Run the infrastructure deployment script first:
+#   cd infrastructure/azure/aca/scripts
+#   ./deploy-infra.ps1
+#
+# The infrastructure script creates all shared resources:
+#   - Resource Group, ACR, Container Apps Environment
+#   - Service Bus, Redis, Cosmos DB, MySQL, Key Vault
+#   - Dapr components (pubsub, statestore, secretstore)
 # ============================================================================
-
-#Requires -Version 5.1
-
-param(
-    [switch]$SkipConfirmation
-)
 
 $ErrorActionPreference = "Stop"
 
-# Colors for output
-function Write-Header {
+# -----------------------------------------------------------------------------
+# Helper Functions
+# -----------------------------------------------------------------------------
+function Write-Header { 
     param([string]$Message)
-    Write-Host "`n============================================================================" -ForegroundColor Cyan
-    Write-Host $Message -ForegroundColor Cyan
-    Write-Host "============================================================================`n" -ForegroundColor Cyan
+    Write-Host "`n==============================================================================" -ForegroundColor Blue
+    Write-Host $Message -ForegroundColor Blue
+    Write-Host "==============================================================================`n" -ForegroundColor Blue
 }
 
-function Write-Success {
-    param([string]$Message)
-    Write-Host "✓ $Message" -ForegroundColor Green
-}
+function Write-Success { param([string]$Message); Write-Host "✓ $Message" -ForegroundColor Green }
+function Write-Warning { param([string]$Message); Write-Host "⚠ $Message" -ForegroundColor Yellow }
+function Write-Error { param([string]$Message); Write-Host "✗ $Message" -ForegroundColor Red }
+function Write-Info { param([string]$Message); Write-Host "ℹ $Message" -ForegroundColor Cyan }
 
-function Write-Warning {
-    param([string]$Message)
-    Write-Host "⚠ $Message" -ForegroundColor Yellow
-}
-
-function Write-Error {
-    param([string]$Message)
-    Write-Host "✗ $Message" -ForegroundColor Red
-}
-
-function Write-Info {
-    param([string]$Message)
-    Write-Host "ℹ $Message" -ForegroundColor Blue
-}
-
-function Get-UserInput {
-    param(
-        [string]$Prompt,
-        [string]$Default
-    )
-    
-    if ($Default) {
-        $input = Read-Host "$Prompt [$Default]"
-        if ([string]::IsNullOrWhiteSpace($input)) {
-            return $Default
-        }
-        return $input
-    }
-    else {
-        return Read-Host $Prompt
-    }
-}
-
-function Get-SecureUserInput {
-    param([string]$Prompt)
-    
-    $secureString = Read-Host $Prompt -AsSecureString
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureString)
-    return [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+function Read-HostWithDefault { 
+    param([string]$Prompt, [string]$Default)
+    $input = Read-Host "$Prompt [$Default]"
+    if ([string]::IsNullOrWhiteSpace($input)) { return $Default }
+    return $input
 }
 
 # ============================================================================
@@ -72,388 +42,358 @@ function Get-SecureUserInput {
 # ============================================================================
 Write-Header "Checking Prerequisites"
 
-# Check Azure CLI
-try {
-    $null = az --version
-    Write-Success "Azure CLI is installed"
+try { az version | Out-Null; Write-Success "Azure CLI installed" } 
+catch { Write-Error "Azure CLI not installed"; exit 1 }
+
+try { docker version | Out-Null; Write-Success "Docker installed" } 
+catch { Write-Error "Docker not installed"; exit 1 }
+
+try { az account show | Out-Null; Write-Success "Logged into Azure" } 
+catch { Write-Warning "Not logged into Azure. Initiating login..."; az login }
+
+# ============================================================================
+# Configuration
+# ============================================================================
+Write-Header "Configuration"
+
+# Service-specific configuration
+$ServiceName = "web-bff"
+$ServiceVersion = "1.0.0"
+$AppPort = 8014
+$ProjectName = "xshopai"
+
+# Dapr configuration
+$DaprHttpPort = 3500
+$DaprGrpcPort = 50001
+
+# Get script directory and service directory
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ServiceDir = Split-Path -Parent $ScriptDir
+
+# ============================================================================
+# Environment Selection
+# ============================================================================
+Write-Host "Available Environments:" -ForegroundColor Cyan
+Write-Host "   dev     - Development environment"
+Write-Host "   staging - Staging/QA environment"
+Write-Host "   prod    - Production environment"
+Write-Host ""
+
+$Environment = Read-HostWithDefault -Prompt "Enter environment (dev/staging/prod)" -Default "dev"
+
+if ($Environment -notmatch '^(dev|staging|prod)$') {
+    Write-Error "Invalid environment: $Environment"
+    Write-Host "   Valid values: dev, staging, prod"
+    exit 1
 }
-catch {
-    Write-Error "Azure CLI is not installed. Please install it from: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
+Write-Success "Environment: $Environment"
+
+# Set environment-specific variables
+switch ($Environment) {
+    "dev" {
+        $NodeEnv = "development"
+        $LogLevel = "debug"
+        $CorsOrigin = "*"
+    }
+    "staging" {
+        $NodeEnv = "staging"
+        $LogLevel = "info"
+        $CorsOrigin = "*"
+    }
+    "prod" {
+        $NodeEnv = "production"
+        $LogLevel = "warn"
+        $CorsOrigin = "*"  # Will be updated to actual domain in production
+    }
+}
+
+# ============================================================================
+# Suffix Configuration
+# ============================================================================
+Write-Header "Infrastructure Configuration"
+
+Write-Host "The suffix was set during infrastructure deployment." -ForegroundColor Cyan
+Write-Host "You can find it by running:"
+Write-Host "   az group list --query `"[?starts_with(name, 'rg-xshopai-$Environment')].{Name:name, Suffix:tags.suffix}`" -o table" -ForegroundColor Blue
+Write-Host ""
+
+$Suffix = Read-Host "Enter the infrastructure suffix"
+
+if ([string]::IsNullOrWhiteSpace($Suffix)) {
+    Write-Error "Suffix is required. Please run the infrastructure deployment first."
     exit 1
 }
 
-# Check Docker
-try {
-    $null = docker --version
-    Write-Success "Docker is installed"
+if ($Suffix -notmatch '^[a-z0-9]{3,6}$') {
+    Write-Error "Invalid suffix format: $Suffix"
+    Write-Host "   Suffix must be 3-6 lowercase alphanumeric characters."
+    exit 1
 }
-catch {
-    Write-Error "Docker is not installed. Please install Docker first."
+Write-Success "Using suffix: $Suffix"
+
+# ============================================================================
+# Derive Resource Names from Infrastructure
+# ============================================================================
+$ResourceGroup = "rg-$ProjectName-$Environment-$Suffix"
+$AcrName = "$ProjectName$Environment$Suffix"
+$ContainerEnv = "cae-$ProjectName-$Environment-$Suffix"
+$KeyVault = "kv-$ProjectName-$Environment-$Suffix"
+$ManagedIdentity = "id-$ProjectName-$Environment-$Suffix"
+
+Write-Info "Derived resource names:"
+Write-Host "   Resource Group:      $ResourceGroup"
+Write-Host "   Container Registry:  $AcrName"
+Write-Host "   Container Env:       $ContainerEnv"
+Write-Host "   Key Vault:           $KeyVault"
+Write-Host ""
+
+# ============================================================================
+# Verify Infrastructure Exists
+# ============================================================================
+Write-Header "Verifying Infrastructure"
+
+# Check Resource Group
+try {
+    az group show --name $ResourceGroup | Out-Null
+    Write-Success "Resource Group exists: $ResourceGroup"
+} catch {
+    Write-Error "Resource group '$ResourceGroup' does not exist."
+    Write-Host ""
+    Write-Host "Please run the infrastructure deployment first:"
+    Write-Host "   cd infrastructure/azure/aca/scripts" -ForegroundColor Blue
+    Write-Host "   ./deploy-infra.ps1" -ForegroundColor Blue
     exit 1
 }
 
-# Check if logged into Azure
-$account = az account show 2>$null | ConvertFrom-Json
-if (-not $account) {
-    Write-Warning "Not logged into Azure. Initiating login..."
-    az login
-    $account = az account show | ConvertFrom-Json
+# Check ACR
+try {
+    $AcrLoginServer = az acr show --name $AcrName --query loginServer -o tsv
+    Write-Success "Container Registry exists: $AcrLoginServer"
+} catch {
+    Write-Error "Container Registry '$AcrName' does not exist."
+    exit 1
 }
-Write-Success "Logged into Azure as: $($account.user.name)"
+
+# Check Container Apps Environment
+try {
+    az containerapp env show --name $ContainerEnv --resource-group $ResourceGroup | Out-Null
+    Write-Success "Container Apps Environment exists: $ContainerEnv"
+} catch {
+    Write-Error "Container Apps Environment '$ContainerEnv' does not exist."
+    exit 1
+}
+
+# Get Managed Identity ID
+try {
+    $IdentityId = az identity show --name $ManagedIdentity --resource-group $ResourceGroup --query id -o tsv
+    Write-Success "Managed Identity exists: $ManagedIdentity"
+} catch {
+    Write-Warning "Managed Identity not found, will deploy without it"
+    $IdentityId = $null
+}
 
 # ============================================================================
-# User Input Collection
+# Backend Services Configuration
 # ============================================================================
-Write-Header "Azure Configuration"
+Write-Header "Backend Services Configuration"
 
-# List available subscriptions
-Write-Host "`nAvailable Azure Subscriptions:" -ForegroundColor Blue
-az account list --query "[].{Name:name, SubscriptionId:id, IsDefault:isDefault}" --output table
-
+Write-Info "Web BFF will communicate with these backend services via Dapr:"
+Write-Host "   - auth-service"
+Write-Host "   - user-service"
+Write-Host "   - product-service"
+Write-Host "   - inventory-service"
+Write-Host "   - cart-service"
+Write-Host "   - order-service"
+Write-Host "   - review-service"
+Write-Host "   - admin-service"
+Write-Host "   - chat-service"
 Write-Host ""
-$SubscriptionId = Get-UserInput -Prompt "Enter Azure Subscription ID (leave empty for default)" -Default ""
-
-if ($SubscriptionId) {
-    az account set --subscription $SubscriptionId
-    Write-Success "Subscription set to: $SubscriptionId"
-}
-else {
-    $SubscriptionId = (az account show --query id --output tsv)
-    Write-Info "Using default subscription: $SubscriptionId"
-}
-
-# Resource Group
-Write-Host ""
-$ResourceGroup = Get-UserInput -Prompt "Enter Resource Group name" -Default "rg-xshopai-aca"
-
-# Location
-Write-Host ""
-Write-Host "Common Azure Locations:" -ForegroundColor Blue
-Write-Host "  - swedencentral (Sweden Central)"
-Write-Host "  - eastus (East US)"
-Write-Host "  - westus2 (West US 2)"
-Write-Host "  - westeurope (West Europe)"
-Write-Host "  - northeurope (North Europe)"
-$Location = Get-UserInput -Prompt "Enter Azure Location" -Default "swedencentral"
-
-# Azure Container Registry
-Write-Host ""
-$AcrName = Get-UserInput -Prompt "Enter Azure Container Registry name (must be globally unique)" -Default "acrxshopaiaca"
-
-# Container Apps Environment
-Write-Host ""
-$EnvironmentName = Get-UserInput -Prompt "Enter Container Apps Environment name" -Default "cae-xshopai-aca"
-
-# Application Insights
-Write-Host ""
-$AiName = Get-UserInput -Prompt "Enter Application Insights name" -Default "ai-xshopai-aca"
-
-# Log Analytics Workspace
-Write-Host ""
-$LogAnalyticsWorkspace = Get-UserInput -Prompt "Enter Log Analytics Workspace name" -Default "law-xshopai-aca"
-
-# CORS Configuration
-Write-Host ""
-Write-Info "CORS origin for frontend applications (e.g., https://customer-ui.azurecontainerapps.io)"
-$CorsOrigin = Get-UserInput -Prompt "Enter CORS Origin (use * for all origins in dev)" -Default "*"
-
-# Service-to-Service Authentication Tokens
-Write-Host ""
-Write-Info "Service tokens are used for backend service authentication"
-$AuthServiceToken = Get-UserInput -Prompt "Enter Auth Service Token" -Default "svc-auth-4ff5876fc86cc45a18d88e5d"
-$UserServiceToken = Get-UserInput -Prompt "Enter User Service Token" -Default "svc-user-4ff5876fc86cc45a18d88e5d"
-$ProductServiceToken = Get-UserInput -Prompt "Enter Product Service Token" -Default "svc-product-4ff5876fc86cc45a18d88e5d"
-$InventoryServiceToken = Get-UserInput -Prompt "Enter Inventory Service Token" -Default "svc-inventory-4ff5876fc86cc45a18d88e5d"
-$CartServiceToken = Get-UserInput -Prompt "Enter Cart Service Token" -Default "svc-cart-4ff5876fc86cc45a18d88e5d"
-$OrderServiceToken = Get-UserInput -Prompt "Enter Order Service Token" -Default "svc-order-4ff5876fc86cc45a18d88e5d"
-$ReviewServiceToken = Get-UserInput -Prompt "Enter Review Service Token" -Default "svc-review-4ff5876fc86cc45a18d88e5d"
-$AdminServiceToken = Get-UserInput -Prompt "Enter Admin Service Token" -Default "svc-admin-4ff5876fc86cc45a18d88e5d"
-$ChatServiceToken = Get-UserInput -Prompt "Enter Chat Service Token" -Default "svc-chat-4ff5876fc86cc45a18d88e5d"
-
-# App name
-$AppName = "web-bff"
+Write-Warning "Ensure these services are deployed before testing the BFF"
 
 # ============================================================================
 # Confirmation
 # ============================================================================
 Write-Header "Deployment Configuration Summary"
 
-Write-Host "Resource Group:           $ResourceGroup"
-Write-Host "Location:                 $Location"
-Write-Host "Container Registry:       $AcrName"
-Write-Host "Environment:              $EnvironmentName"
-Write-Host "Application Insights:     $AiName"
-Write-Host "Log Analytics:            $LogAnalyticsWorkspace"
-Write-Host "CORS Origin:              $CorsOrigin"
-Write-Host "App Name:                 $AppName"
+Write-Host "Environment:          $Environment" -ForegroundColor Cyan
+Write-Host "Suffix:               $Suffix" -ForegroundColor Cyan
+Write-Host "Resource Group:       $ResourceGroup" -ForegroundColor Cyan
+Write-Host "Container Registry:   $AcrLoginServer" -ForegroundColor Cyan
+Write-Host "Container Env:        $ContainerEnv" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Service Configuration:" -ForegroundColor Cyan
+Write-Host "   Service Name:      $ServiceName"
+Write-Host "   Service Version:   $ServiceVersion"
+Write-Host "   App Port:          $AppPort"
+Write-Host "   NODE_ENV:          $NodeEnv"
+Write-Host "   LOG_LEVEL:         $LogLevel"
+Write-Host "   CORS_ORIGIN:       $CorsOrigin"
+Write-Host "   Dapr HTTP Port:    $DaprHttpPort"
+Write-Host "   Dapr gRPC Port:    $DaprGrpcPort"
 Write-Host ""
 
-if (-not $SkipConfirmation) {
-    $confirm = Read-Host "Do you want to proceed with deployment? (y/N)"
-    if ($confirm -notmatch '^[Yy]$') {
-        Write-Warning "Deployment cancelled by user"
-        exit 0
-    }
+$Confirm = Read-Host "Do you want to proceed with deployment? (y/N)"
+if ($Confirm -notmatch '^[Yy]$') {
+    Write-Warning "Deployment cancelled by user"
+    exit 0
 }
 
 # ============================================================================
-# Step 1: Create Resource Group
+# Step 1: Build and Push Container Image
 # ============================================================================
-Write-Header "Step 1: Creating Resource Group"
-
-az group create `
-    --name $ResourceGroup `
-    --location $Location `
-    --output none
-
-Write-Success "Resource group '$ResourceGroup' created/verified"
-
-# ============================================================================
-# Step 2: Create Azure Container Registry
-# ============================================================================
-Write-Header "Step 2: Creating Azure Container Registry"
-
-$acrExists = az acr show --name $AcrName 2>$null
-if ($acrExists) {
-    Write-Info "ACR '$AcrName' already exists, skipping creation"
-}
-else {
-    az acr create `
-        --resource-group $ResourceGroup `
-        --name $AcrName `
-        --sku Basic `
-        --admin-enabled true `
-        --output none
-    Write-Success "ACR '$AcrName' created"
-}
-
-$AcrLoginServer = (az acr show --name $AcrName --query loginServer --output tsv)
-Write-Info "ACR Login Server: $AcrLoginServer"
-
-# ============================================================================
-# Step 3: Build and Push Container Image
-# ============================================================================
-Write-Header "Step 3: Building and Pushing Container Image"
+Write-Header "Step 1: Building and Pushing Container Image"
 
 # Login to ACR
+Write-Info "Logging into ACR..."
 az acr login --name $AcrName
 Write-Success "Logged into ACR"
 
 # Navigate to service directory
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ServiceDir = Split-Path -Parent $ScriptDir
 Push-Location $ServiceDir
 
 try {
-    # Build Docker image
+    # Build Docker image (using production target)
     Write-Info "Building Docker image..."
-    docker build -t web-bff:latest .
+    docker build --target production -t "${ServiceName}:latest" .
     Write-Success "Docker image built"
 
     # Tag and push
-    docker tag web-bff:latest "$AcrLoginServer/web-bff:latest"
-    docker push "$AcrLoginServer/web-bff:latest"
-    Write-Success "Image pushed to ACR"
-}
-finally {
+    $ImageTag = "$AcrLoginServer/${ServiceName}:latest"
+    docker tag "${ServiceName}:latest" $ImageTag
+    Write-Info "Pushing image to ACR..."
+    docker push $ImageTag
+    Write-Success "Image pushed: $ImageTag"
+} finally {
     Pop-Location
 }
 
 # ============================================================================
-# Step 4: Register Resource Providers
+# Step 2: Deploy Container App
 # ============================================================================
-Write-Header "Step 4: Registering Resource Providers"
+Write-Header "Step 2: Deploying Container App"
 
-Write-Info "Registering microsoft.operationalinsights..."
-az provider register --namespace microsoft.operationalinsights --wait
+# Get ACR credentials
+$AcrPassword = az acr credential show --name $AcrName --query "passwords[0].value" -o tsv
 
-Write-Info "Registering microsoft.insights..."
-az provider register --namespace microsoft.insights --wait
-
-Write-Info "Registering Microsoft.App..."
-az provider register --namespace Microsoft.App --wait
-
-Write-Success "All resource providers registered"
-
-# ============================================================================
-# Step 5: Create Application Insights
-# ============================================================================
-Write-Header "Step 5: Creating Application Insights"
-
-$aiExists = az monitor app-insights component show --app $AiName --resource-group $ResourceGroup 2>$null
-if ($aiExists) {
-    Write-Info "Application Insights '$AiName' already exists"
-}
-else {
-    az monitor app-insights component create `
-        --app $AiName `
-        --location $Location `
-        --resource-group $ResourceGroup `
-        --output none
-    Write-Success "Application Insights '$AiName' created"
+# Check if container app exists
+$AppExists = $false
+try {
+    az containerapp show --name $ServiceName --resource-group $ResourceGroup | Out-Null
+    $AppExists = $true
+} catch {
+    $AppExists = $false
 }
 
-$AiKey = (az monitor app-insights component show `
-    --app $AiName `
-    --resource-group $ResourceGroup `
-    --query instrumentationKey `
-    --output tsv)
-Write-Info "App Insights Key: $AiKey"
-
-# ============================================================================
-# Step 6: Create Log Analytics Workspace
-# ============================================================================
-Write-Header "Step 6: Creating Log Analytics Workspace"
-
-$lawExists = az monitor log-analytics workspace show --resource-group $ResourceGroup --workspace-name $LogAnalyticsWorkspace 2>$null
-if ($lawExists) {
-    Write-Info "Log Analytics Workspace '$LogAnalyticsWorkspace' already exists"
-}
-else {
-    az monitor log-analytics workspace create `
-        --resource-group $ResourceGroup `
-        --workspace-name $LogAnalyticsWorkspace `
-        --location $Location `
-        --output none
-    Write-Success "Log Analytics Workspace '$LogAnalyticsWorkspace' created"
-}
-
-$LogAnalyticsWorkspaceId = (az monitor log-analytics workspace show `
-    --resource-group $ResourceGroup `
-    --workspace-name $LogAnalyticsWorkspace `
-    --query customerId `
-    --output tsv)
-
-$LogAnalyticsKey = (az monitor log-analytics workspace get-shared-keys `
-    --resource-group $ResourceGroup `
-    --workspace-name $LogAnalyticsWorkspace `
-    --query primarySharedKey `
-    --output tsv)
-
-Write-Info "Log Analytics Workspace ID: $LogAnalyticsWorkspaceId"
-
-# ============================================================================
-# Step 7: Create Container Apps Environment
-# ============================================================================
-Write-Header "Step 7: Creating Container Apps Environment"
-
-$envExists = az containerapp env show --name $EnvironmentName --resource-group $ResourceGroup 2>$null
-if ($envExists) {
-    Write-Info "Container Apps Environment '$EnvironmentName' already exists"
-}
-else {
-    az containerapp env create `
-        --name $EnvironmentName `
-        --resource-group $ResourceGroup `
-        --location $Location `
-        --dapr-instrumentation-key $AiKey `
-        --logs-workspace-id $LogAnalyticsWorkspaceId `
-        --logs-workspace-key $LogAnalyticsKey `
-        --enable-workload-profiles false `
-        --output none
-    Write-Success "Container Apps Environment '$EnvironmentName' created"
-}
-
-# ============================================================================
-# Step 8: Deploy Container App
-# ============================================================================
-Write-Header "Step 8: Deploying Container App"
-
-$AcrPassword = (az acr credential show --name $AcrName --query "passwords[0].value" --output tsv)
-
-# Build env-vars array
-$envVars = @(
-    "NODE_ENV=production",
-    "PORT=3100",
-    "HOST=0.0.0.0",
-    "LOG_LEVEL=info",
-    "CORS_ORIGIN=$CorsOrigin",
-    "DAPR_HTTP_PORT=3500",
-    "DAPR_GRPC_PORT=50001",
-    "DAPR_APP_ID=web-bff",
-    "AUTH_SERVICE_APP_ID=auth-service",
-    "USER_SERVICE_APP_ID=user-service",
-    "PRODUCT_SERVICE_APP_ID=product-service",
-    "INVENTORY_SERVICE_APP_ID=inventory-service",
-    "CART_SERVICE_APP_ID=cart-service",
-    "ORDER_SERVICE_APP_ID=order-service",
-    "REVIEW_SERVICE_APP_ID=review-service",
-    "ADMIN_SERVICE_APP_ID=admin-service",
-    "CHAT_SERVICE_APP_ID=chat-service",
-    "AUTH_SERVICE_TOKEN=$AuthServiceToken",
-    "USER_SERVICE_TOKEN=$UserServiceToken",
-    "PRODUCT_SERVICE_TOKEN=$ProductServiceToken",
-    "INVENTORY_SERVICE_TOKEN=$InventoryServiceToken",
-    "CART_SERVICE_TOKEN=$CartServiceToken",
-    "ORDER_SERVICE_TOKEN=$OrderServiceToken",
-    "REVIEW_SERVICE_TOKEN=$ReviewServiceToken",
-    "ADMIN_SERVICE_TOKEN=$AdminServiceToken",
-    "CHAT_SERVICE_TOKEN=$ChatServiceToken"
-)
-
-$envVarsString = $envVars -join " "
-
-$appExists = az containerapp show --name $AppName --resource-group $ResourceGroup 2>$null
-if ($appExists) {
-    Write-Info "Container app '$AppName' already exists, updating..."
+if ($AppExists) {
+    Write-Info "Container app '$ServiceName' exists, updating..."
     az containerapp update `
-        --name $AppName `
+        --name $ServiceName `
         --resource-group $ResourceGroup `
-        --image "$AcrLoginServer/web-bff:latest" `
-        --set-env-vars $envVarsString `
+        --image $ImageTag `
+        --set-env-vars `
+            "NODE_ENV=$NodeEnv" `
+            "NAME=$ServiceName" `
+            "VERSION=$ServiceVersion" `
+            "PORT=$AppPort" `
+            "HOST=0.0.0.0" `
+            "LOG_LEVEL=$LogLevel" `
+            "CORS_ORIGIN=$CorsOrigin" `
+            "DAPR_HTTP_PORT=$DaprHttpPort" `
+            "DAPR_GRPC_PORT=$DaprGrpcPort" `
+            "DAPR_APP_ID=$ServiceName" `
+            "AUTH_SERVICE_APP_ID=auth-service" `
+            "USER_SERVICE_APP_ID=user-service" `
+            "PRODUCT_SERVICE_APP_ID=product-service" `
+            "INVENTORY_SERVICE_APP_ID=inventory-service" `
+            "CART_SERVICE_APP_ID=cart-service" `
+            "ORDER_SERVICE_APP_ID=order-service" `
+            "REVIEW_SERVICE_APP_ID=review-service" `
+            "ADMIN_SERVICE_APP_ID=admin-service" `
+            "CHAT_SERVICE_APP_ID=chat-service" `
         --output none
+    Write-Success "Container app updated"
+} else {
+    Write-Info "Creating container app '$ServiceName'..."
+    
+    $CreateArgs = @(
+        "--name", $ServiceName,
+        "--resource-group", $ResourceGroup,
+        "--environment", $ContainerEnv,
+        "--image", $ImageTag,
+        "--registry-server", $AcrLoginServer,
+        "--registry-username", $AcrName,
+        "--registry-password", $AcrPassword,
+        "--target-port", $AppPort,
+        "--ingress", "external",
+        "--min-replicas", "1",
+        "--max-replicas", "10",
+        "--cpu", "0.5",
+        "--memory", "1.0Gi",
+        "--enable-dapr",
+        "--dapr-app-id", $ServiceName,
+        "--dapr-app-port", $AppPort,
+        "--env-vars",
+            "NODE_ENV=$NodeEnv",
+            "NAME=$ServiceName",
+            "VERSION=$ServiceVersion",
+            "PORT=$AppPort",
+            "HOST=0.0.0.0",
+            "LOG_LEVEL=$LogLevel",
+            "CORS_ORIGIN=$CorsOrigin",
+            "DAPR_HTTP_PORT=$DaprHttpPort",
+            "DAPR_GRPC_PORT=$DaprGrpcPort",
+            "DAPR_APP_ID=$ServiceName",
+            "AUTH_SERVICE_APP_ID=auth-service",
+            "USER_SERVICE_APP_ID=user-service",
+            "PRODUCT_SERVICE_APP_ID=product-service",
+            "INVENTORY_SERVICE_APP_ID=inventory-service",
+            "CART_SERVICE_APP_ID=cart-service",
+            "ORDER_SERVICE_APP_ID=order-service",
+            "REVIEW_SERVICE_APP_ID=review-service",
+            "ADMIN_SERVICE_APP_ID=admin-service",
+            "CHAT_SERVICE_APP_ID=chat-service",
+        "--output", "none"
+    )
+    
+    if ($IdentityId) {
+        $CreateArgs += @("--user-assigned", $IdentityId)
+    }
+    
+    az containerapp create @CreateArgs
+    Write-Success "Container app created"
 }
-else {
-    az containerapp create `
-        --name $AppName `
-        --resource-group $ResourceGroup `
-        --environment $EnvironmentName `
-        --image "$AcrLoginServer/web-bff:latest" `
-        --registry-server $AcrLoginServer `
-        --registry-username $AcrName `
-        --registry-password $AcrPassword `
-        --target-port 3100 `
-        --ingress external `
-        --min-replicas 1 `
-        --max-replicas 10 `
-        --cpu 0.5 `
-        --memory 1.0Gi `
-        --enable-dapr `
-        --dapr-app-id web-bff `
-        --dapr-app-port 3100 `
-        --env-vars $envVarsString `
-        --output none
-}
-
-Write-Success "Container app '$AppName' deployed"
 
 # ============================================================================
-# Step 9: Verify Deployment
+# Step 3: Verify Deployment
 # ============================================================================
-Write-Header "Step 9: Verifying Deployment"
+Write-Header "Step 3: Verifying Deployment"
 
-$AppUrl = (az containerapp show `
-    --name $AppName `
+$AppUrl = az containerapp show `
+    --name $ServiceName `
     --resource-group $ResourceGroup `
     --query properties.configuration.ingress.fqdn `
-    --output tsv)
+    -o tsv
 
-Write-Success "Deployment completed successfully!"
+Write-Success "Deployment completed!"
 Write-Host ""
 Write-Info "Application URL: https://$AppUrl"
-Write-Info "Health Check: https://$AppUrl/health"
+Write-Info "Health Check:    https://$AppUrl/health"
 Write-Host ""
 
 # Test health endpoint
-Write-Info "Testing health endpoint..."
-Start-Sleep -Seconds 10  # Wait for app to start
+Write-Info "Waiting for app to start (30s)..."
+Start-Sleep -Seconds 30
 
+Write-Info "Testing health endpoint..."
 try {
-    $response = Invoke-WebRequest -Uri "https://$AppUrl/health" -TimeoutSec 30 -UseBasicParsing
-    Write-Success "Health check passed!"
-}
-catch {
-    Write-Warning "Health check failed or timed out. The app may still be starting."
+    $Response = Invoke-WebRequest -Uri "https://$AppUrl/health" -UseBasicParsing -TimeoutSec 30
+    if ($Response.StatusCode -eq 200) {
+        Write-Success "Health check passed! (HTTP $($Response.StatusCode))"
+    } else {
+        Write-Warning "Health check returned HTTP $($Response.StatusCode). The app may still be starting."
+    }
+} catch {
+    Write-Warning "Health check failed. The app may still be starting."
 }
 
 # ============================================================================
@@ -461,25 +401,34 @@ catch {
 # ============================================================================
 Write-Header "Deployment Summary"
 
-Write-Host "Resource Group:       $ResourceGroup"
-Write-Host "Location:             $Location"
-Write-Host "Container Registry:   $AcrLoginServer"
-Write-Host "Environment:          $EnvironmentName"
-Write-Host "Application URL:      https://$AppUrl"
-Write-Host "CORS Origin:          $CorsOrigin"
+Write-Host "==============================================================================" -ForegroundColor Green
+Write-Host "   ✅ $ServiceName DEPLOYED SUCCESSFULLY" -ForegroundColor Green
+Write-Host "==============================================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Backend Services (Dapr App IDs):"
-Write-Host "  - auth-service"
-Write-Host "  - user-service"
-Write-Host "  - product-service"
-Write-Host "  - inventory-service"
-Write-Host "  - cart-service"
-Write-Host "  - order-service"
-Write-Host "  - review-service"
-Write-Host "  - admin-service"
-Write-Host "  - chat-service"
+Write-Host "Application:" -ForegroundColor Cyan
+Write-Host "   URL:              https://$AppUrl"
+Write-Host "   Health:           https://$AppUrl/health"
 Write-Host ""
-Write-Info "To view logs: az containerapp logs show --name $AppName --resource-group $ResourceGroup --follow"
-Write-Info "To delete: az containerapp delete --name $AppName --resource-group $ResourceGroup --yes"
+Write-Host "Infrastructure:" -ForegroundColor Cyan
+Write-Host "   Resource Group:   $ResourceGroup"
+Write-Host "   Environment:      $ContainerEnv"
+Write-Host "   Registry:         $AcrLoginServer"
 Write-Host ""
-Write-Warning "Note: Ensure all backend services are deployed with matching Dapr app IDs for service invocation to work."
+Write-Host "Backend Services (Dapr App IDs):" -ForegroundColor Cyan
+Write-Host "   auth-service      - Authentication service"
+Write-Host "   user-service      - User management"
+Write-Host "   product-service   - Product catalog"
+Write-Host "   inventory-service - Inventory management"
+Write-Host "   cart-service      - Shopping cart"
+Write-Host "   order-service     - Order management"
+Write-Host "   review-service    - Product reviews"
+Write-Host "   admin-service     - Admin operations"
+Write-Host "   chat-service      - Customer support chat"
+Write-Host ""
+Write-Host "Useful Commands:" -ForegroundColor Cyan
+Write-Host "   View logs:        az containerapp logs show --name $ServiceName --resource-group $ResourceGroup --follow" -ForegroundColor Blue
+Write-Host "   View Dapr logs:   az containerapp logs show --name $ServiceName --resource-group $ResourceGroup --container daprd --follow" -ForegroundColor Blue
+Write-Host "   Delete app:       az containerapp delete --name $ServiceName --resource-group $ResourceGroup --yes" -ForegroundColor Blue
+Write-Host ""
+Write-Warning "Note: Ensure all backend services are deployed for full functionality."
+Write-Host ""

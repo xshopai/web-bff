@@ -3,24 +3,35 @@
 # ============================================================================
 # Azure Container Apps Deployment Script for Web BFF
 # ============================================================================
-# This script automates the deployment of Web BFF to Azure Container Apps
-# with Dapr support for service invocation to backend microservices.
+# This script deploys the Web BFF to Azure Container Apps.
+# 
+# PREREQUISITE: Run the infrastructure deployment script first:
+#   cd infrastructure/azure/aca/scripts
+#   ./deploy-infra.sh
+#
+# The infrastructure script creates all shared resources:
+#   - Resource Group, ACR, Container Apps Environment
+#   - Service Bus, Redis, Cosmos DB, MySQL, Key Vault
+#   - Dapr components (pubsub, statestore, secretstore)
 # ============================================================================
 
 set -e
 
+# -----------------------------------------------------------------------------
 # Colors for output
+# -----------------------------------------------------------------------------
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Print functions
 print_header() {
-    echo -e "\n${BLUE}============================================================================${NC}"
+    echo -e "\n${BLUE}==============================================================================${NC}"
     echo -e "${BLUE}$1${NC}"
-    echo -e "${BLUE}============================================================================${NC}\n"
+    echo -e "${BLUE}==============================================================================${NC}\n"
 }
 
 print_success() {
@@ -36,7 +47,7 @@ print_error() {
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ $1${NC}"
+    echo -e "${CYAN}ℹ $1${NC}"
 }
 
 # ============================================================================
@@ -66,109 +77,181 @@ fi
 print_success "Logged into Azure"
 
 # ============================================================================
-# User Input Collection
+# Configuration
 # ============================================================================
-print_header "Azure Configuration"
+print_header "Configuration"
 
-# Function to prompt with default value
-prompt_with_default() {
-    local prompt="$1"
-    local default="$2"
-    local varname="$3"
-    
-    read -p "$prompt [$default]: " input
-    eval "$varname=\"${input:-$default}\""
-}
+# Service-specific configuration
+SERVICE_NAME="web-bff"
+SERVICE_VERSION="1.0.0"
+APP_PORT=8014
+PROJECT_NAME="xshopai"
 
-# Function to prompt for password (hidden input)
-prompt_password() {
-    local prompt="$1"
-    local varname="$2"
-    
-    read -sp "$prompt: " input
-    echo ""
-    eval "$varname=\"$input\""
-}
+# Dapr configuration
+DAPR_HTTP_PORT=3500
+DAPR_GRPC_PORT=50001
 
-# List available subscriptions
-echo -e "\n${BLUE}Available Azure Subscriptions:${NC}"
-az account list --query "[].{Name:name, SubscriptionId:id, IsDefault:isDefault}" --output table
+# Get script directory and service directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVICE_DIR="$(dirname "$SCRIPT_DIR")"
 
+# ============================================================================
+# Environment Selection
+# ============================================================================
+echo -e "${CYAN}Available Environments:${NC}"
+echo "   dev     - Development environment"
+echo "   staging - Staging/QA environment"
+echo "   prod    - Production environment"
 echo ""
-prompt_with_default "Enter Azure Subscription ID (leave empty for default)" "" SUBSCRIPTION_ID
 
-if [ -n "$SUBSCRIPTION_ID" ]; then
-    az account set --subscription "$SUBSCRIPTION_ID"
-    print_success "Subscription set to: $SUBSCRIPTION_ID"
-else
-    SUBSCRIPTION_ID=$(az account show --query id --output tsv)
-    print_info "Using default subscription: $SUBSCRIPTION_ID"
+read -p "Enter environment (dev/staging/prod) [dev]: " ENVIRONMENT
+ENVIRONMENT="${ENVIRONMENT:-dev}"
+
+if [[ ! "$ENVIRONMENT" =~ ^(dev|staging|prod)$ ]]; then
+    print_error "Invalid environment: $ENVIRONMENT"
+    echo "   Valid values: dev, staging, prod"
+    exit 1
+fi
+print_success "Environment: $ENVIRONMENT"
+
+# Set environment-specific variables
+case "$ENVIRONMENT" in
+    dev)
+        NODE_ENV="development"
+        LOG_LEVEL="debug"
+        CORS_ORIGIN="*"
+        ;;
+    staging)
+        NODE_ENV="staging"
+        LOG_LEVEL="info"
+        CORS_ORIGIN="*"
+        ;;
+    prod)
+        NODE_ENV="production"
+        LOG_LEVEL="warn"
+        CORS_ORIGIN="*"  # Will be updated to actual domain in production
+        ;;
+esac
+
+# ============================================================================
+# Suffix Configuration
+# ============================================================================
+print_header "Infrastructure Configuration"
+
+echo -e "${CYAN}The suffix was set during infrastructure deployment.${NC}"
+echo "You can find it by running:"
+echo -e "   ${BLUE}az group list --query \"[?starts_with(name, 'rg-xshopai-$ENVIRONMENT')].{Name:name, Suffix:tags.suffix}\" -o table${NC}"
+echo ""
+
+read -p "Enter the infrastructure suffix: " SUFFIX
+
+if [ -z "$SUFFIX" ]; then
+    print_error "Suffix is required. Please run the infrastructure deployment first."
+    exit 1
 fi
 
-# Resource Group
-echo ""
-prompt_with_default "Enter Resource Group name" "rg-xshopai-aca" RESOURCE_GROUP
+# Validate suffix format
+if [[ ! "$SUFFIX" =~ ^[a-z0-9]{3,6}$ ]]; then
+    print_error "Invalid suffix format: $SUFFIX"
+    echo "   Suffix must be 3-6 lowercase alphanumeric characters."
+    exit 1
+fi
+print_success "Using suffix: $SUFFIX"
 
-# Location
-echo ""
-echo -e "${BLUE}Common Azure Locations:${NC}"
-echo "  - swedencentral (Sweden Central)"
-echo "  - eastus (East US)"
-echo "  - westus2 (West US 2)"
-echo "  - westeurope (West Europe)"
-echo "  - northeurope (North Europe)"
-prompt_with_default "Enter Azure Location" "swedencentral" LOCATION
+# ============================================================================
+# Derive Resource Names from Infrastructure
+# ============================================================================
+# These names must match what was created by deploy-infra.sh
+RESOURCE_GROUP="rg-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
+ACR_NAME="${PROJECT_NAME}${ENVIRONMENT}${SUFFIX}"
+CONTAINER_ENV="cae-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
+KEY_VAULT="kv-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
+MANAGED_IDENTITY="id-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
 
-# Azure Container Registry
+print_info "Derived resource names:"
+echo "   Resource Group:      $RESOURCE_GROUP"
+echo "   Container Registry:  $ACR_NAME"
+echo "   Container Env:       $CONTAINER_ENV"
+echo "   Key Vault:           $KEY_VAULT"
 echo ""
-prompt_with_default "Enter Azure Container Registry name (must be globally unique)" "acrxshopaiaca" ACR_NAME
 
-# Container Apps Environment
+# ============================================================================
+# Verify Infrastructure Exists
+# ============================================================================
+print_header "Verifying Infrastructure"
+
+# Check Resource Group
+if ! az group show --name "$RESOURCE_GROUP" &> /dev/null; then
+    print_error "Resource group '$RESOURCE_GROUP' does not exist."
+    echo ""
+    echo "Please run the infrastructure deployment first:"
+    echo -e "   ${BLUE}cd infrastructure/azure/aca/scripts${NC}"
+    echo -e "   ${BLUE}./deploy-infra.sh${NC}"
+    exit 1
+fi
+print_success "Resource Group exists: $RESOURCE_GROUP"
+
+# Check ACR
+if ! az acr show --name "$ACR_NAME" &> /dev/null; then
+    print_error "Container Registry '$ACR_NAME' does not exist."
+    exit 1
+fi
+ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
+print_success "Container Registry exists: $ACR_LOGIN_SERVER"
+
+# Check Container Apps Environment
+if ! az containerapp env show --name "$CONTAINER_ENV" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
+    print_error "Container Apps Environment '$CONTAINER_ENV' does not exist."
+    exit 1
+fi
+print_success "Container Apps Environment exists: $CONTAINER_ENV"
+
+# Get Managed Identity ID
+IDENTITY_ID=$(MSYS_NO_PATHCONV=1 az identity show --name "$MANAGED_IDENTITY" --resource-group "$RESOURCE_GROUP" --query id -o tsv 2>/dev/null || echo "")
+if [ -z "$IDENTITY_ID" ]; then
+    print_warning "Managed Identity not found, will deploy without it"
+else
+    print_success "Managed Identity exists: $MANAGED_IDENTITY"
+fi
+
+# ============================================================================
+# Backend Services Configuration (Dapr App IDs)
+# ============================================================================
+print_header "Backend Services Configuration"
+
+print_info "Web BFF will communicate with these backend services via Dapr:"
+echo "   - auth-service"
+echo "   - user-service"
+echo "   - product-service"
+echo "   - inventory-service"
+echo "   - cart-service"
+echo "   - order-service"
+echo "   - review-service"
+echo "   - admin-service"
+echo "   - chat-service"
 echo ""
-prompt_with_default "Enter Container Apps Environment name" "cae-xshopai-aca" ENVIRONMENT_NAME
-
-# Application Insights
-echo ""
-prompt_with_default "Enter Application Insights name" "ai-xshopai-aca" AI_NAME
-
-# Log Analytics Workspace
-echo ""
-prompt_with_default "Enter Log Analytics Workspace name" "law-xshopai-aca" LOG_ANALYTICS_WORKSPACE
-
-# CORS Configuration
-echo ""
-print_info "CORS origin for frontend applications (e.g., https://customer-ui.azurecontainerapps.io)"
-prompt_with_default "Enter CORS Origin (use * for all origins in dev)" "*" CORS_ORIGIN
-
-# Service-to-Service Authentication Tokens
-echo ""
-print_info "Service tokens are used for backend service authentication"
-prompt_with_default "Enter Auth Service Token" "svc-auth-4ff5876fc86cc45a18d88e5d" AUTH_SERVICE_TOKEN
-prompt_with_default "Enter User Service Token" "svc-user-4ff5876fc86cc45a18d88e5d" USER_SERVICE_TOKEN
-prompt_with_default "Enter Product Service Token" "svc-product-4ff5876fc86cc45a18d88e5d" PRODUCT_SERVICE_TOKEN
-prompt_with_default "Enter Inventory Service Token" "svc-inventory-4ff5876fc86cc45a18d88e5d" INVENTORY_SERVICE_TOKEN
-prompt_with_default "Enter Cart Service Token" "svc-cart-4ff5876fc86cc45a18d88e5d" CART_SERVICE_TOKEN
-prompt_with_default "Enter Order Service Token" "svc-order-4ff5876fc86cc45a18d88e5d" ORDER_SERVICE_TOKEN
-prompt_with_default "Enter Review Service Token" "svc-review-4ff5876fc86cc45a18d88e5d" REVIEW_SERVICE_TOKEN
-prompt_with_default "Enter Admin Service Token" "svc-admin-4ff5876fc86cc45a18d88e5d" ADMIN_SERVICE_TOKEN
-prompt_with_default "Enter Chat Service Token" "svc-chat-4ff5876fc86cc45a18d88e5d" CHAT_SERVICE_TOKEN
-
-# App name
-APP_NAME="web-bff"
+print_warning "Ensure these services are deployed before testing the BFF"
 
 # ============================================================================
 # Confirmation
 # ============================================================================
 print_header "Deployment Configuration Summary"
 
-echo "Resource Group:           $RESOURCE_GROUP"
-echo "Location:                 $LOCATION"
-echo "Container Registry:       $ACR_NAME"
-echo "Environment:              $ENVIRONMENT_NAME"
-echo "Application Insights:     $AI_NAME"
-echo "Log Analytics:            $LOG_ANALYTICS_WORKSPACE"
-echo "CORS Origin:              $CORS_ORIGIN"
-echo "App Name:                 $APP_NAME"
+echo -e "${CYAN}Environment:${NC}          $ENVIRONMENT"
+echo -e "${CYAN}Suffix:${NC}               $SUFFIX"
+echo -e "${CYAN}Resource Group:${NC}       $RESOURCE_GROUP"
+echo -e "${CYAN}Container Registry:${NC}   $ACR_LOGIN_SERVER"
+echo -e "${CYAN}Container Env:${NC}        $CONTAINER_ENV"
+echo ""
+echo -e "${CYAN}Service Configuration:${NC}"
+echo -e "   Service Name:      $SERVICE_NAME"
+echo -e "   Service Version:   $SERVICE_VERSION"
+echo -e "   App Port:          $APP_PORT"
+echo -e "   NODE_ENV:          $NODE_ENV"
+echo -e "   LOG_LEVEL:         $LOG_LEVEL"
+echo -e "   CORS_ORIGIN:       $CORS_ORIGIN"
+echo -e "   Dapr HTTP Port:    $DAPR_HTTP_PORT"
+echo -e "   Dapr gRPC Port:    $DAPR_GRPC_PORT"
 echo ""
 
 read -p "Do you want to proceed with deployment? (y/N): " CONFIRM
@@ -178,237 +261,127 @@ if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
 fi
 
 # ============================================================================
-# Step 1: Create Resource Group
+# Step 1: Build and Push Container Image
 # ============================================================================
-print_header "Step 1: Creating Resource Group"
-
-az group create \
-    --name "$RESOURCE_GROUP" \
-    --location "$LOCATION" \
-    --output none
-
-print_success "Resource group '$RESOURCE_GROUP' created/verified"
-
-# ============================================================================
-# Step 2: Create Azure Container Registry
-# ============================================================================
-print_header "Step 2: Creating Azure Container Registry"
-
-if az acr show --name "$ACR_NAME" &> /dev/null; then
-    print_info "ACR '$ACR_NAME' already exists, skipping creation"
-else
-    az acr create \
-        --resource-group "$RESOURCE_GROUP" \
-        --name "$ACR_NAME" \
-        --sku Basic \
-        --admin-enabled true \
-        --output none
-    print_success "ACR '$ACR_NAME' created"
-fi
-
-ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer --output tsv)
-print_info "ACR Login Server: $ACR_LOGIN_SERVER"
-
-# ============================================================================
-# Step 3: Build and Push Container Image
-# ============================================================================
-print_header "Step 3: Building and Pushing Container Image"
+print_header "Step 1: Building and Pushing Container Image"
 
 # Login to ACR
+print_info "Logging into ACR..."
 az acr login --name "$ACR_NAME"
 print_success "Logged into ACR"
 
 # Navigate to service directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SERVICE_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$SERVICE_DIR"
 
-# Build Docker image
+# Build Docker image (using production target)
 print_info "Building Docker image..."
-docker build -t web-bff:latest .
+docker build --target production -t "$SERVICE_NAME:latest" .
 print_success "Docker image built"
 
 # Tag and push
-docker tag web-bff:latest "$ACR_LOGIN_SERVER/web-bff:latest"
-docker push "$ACR_LOGIN_SERVER/web-bff:latest"
-print_success "Image pushed to ACR"
+IMAGE_TAG="$ACR_LOGIN_SERVER/$SERVICE_NAME:latest"
+docker tag "$SERVICE_NAME:latest" "$IMAGE_TAG"
+print_info "Pushing image to ACR..."
+docker push "$IMAGE_TAG"
+print_success "Image pushed: $IMAGE_TAG"
 
 # ============================================================================
-# Step 4: Register Resource Providers
+# Step 2: Deploy Container App
 # ============================================================================
-print_header "Step 4: Registering Resource Providers"
+print_header "Step 2: Deploying Container App"
 
-print_info "Registering microsoft.operationalinsights..."
-az provider register --namespace microsoft.operationalinsights --wait
+# Get ACR credentials
+ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" -o tsv)
 
-print_info "Registering microsoft.insights..."
-az provider register --namespace microsoft.insights --wait
+# Build environment variables
+ENV_VARS=("NODE_ENV=$NODE_ENV")
+ENV_VARS+=("NAME=$SERVICE_NAME")
+ENV_VARS+=("VERSION=$SERVICE_VERSION")
+ENV_VARS+=("PORT=$APP_PORT")
+ENV_VARS+=("HOST=0.0.0.0")
+ENV_VARS+=("LOG_LEVEL=$LOG_LEVEL")
+ENV_VARS+=("CORS_ORIGIN=$CORS_ORIGIN")
+ENV_VARS+=("DAPR_HTTP_PORT=$DAPR_HTTP_PORT")
+ENV_VARS+=("DAPR_GRPC_PORT=$DAPR_GRPC_PORT")
+ENV_VARS+=("DAPR_APP_ID=$SERVICE_NAME")
 
-print_info "Registering Microsoft.App..."
-az provider register --namespace Microsoft.App --wait
+# Backend service Dapr app IDs
+ENV_VARS+=("AUTH_SERVICE_APP_ID=auth-service")
+ENV_VARS+=("USER_SERVICE_APP_ID=user-service")
+ENV_VARS+=("PRODUCT_SERVICE_APP_ID=product-service")
+ENV_VARS+=("INVENTORY_SERVICE_APP_ID=inventory-service")
+ENV_VARS+=("CART_SERVICE_APP_ID=cart-service")
+ENV_VARS+=("ORDER_SERVICE_APP_ID=order-service")
+ENV_VARS+=("REVIEW_SERVICE_APP_ID=review-service")
+ENV_VARS+=("ADMIN_SERVICE_APP_ID=admin-service")
+ENV_VARS+=("CHAT_SERVICE_APP_ID=chat-service")
 
-print_success "All resource providers registered"
-
-# ============================================================================
-# Step 5: Create Application Insights
-# ============================================================================
-print_header "Step 5: Creating Application Insights"
-
-if az monitor app-insights component show --app "$AI_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-    print_info "Application Insights '$AI_NAME' already exists"
-else
-    az monitor app-insights component create \
-        --app "$AI_NAME" \
-        --location "$LOCATION" \
-        --resource-group "$RESOURCE_GROUP" \
-        --output none
-    print_success "Application Insights '$AI_NAME' created"
-fi
-
-AI_KEY=$(az monitor app-insights component show \
-    --app "$AI_NAME" \
-    --resource-group "$RESOURCE_GROUP" \
-    --query instrumentationKey \
-    --output tsv)
-print_info "App Insights Key: $AI_KEY"
-
-# ============================================================================
-# Step 6: Create Log Analytics Workspace
-# ============================================================================
-print_header "Step 6: Creating Log Analytics Workspace"
-
-if az monitor log-analytics workspace show --resource-group "$RESOURCE_GROUP" --workspace-name "$LOG_ANALYTICS_WORKSPACE" &> /dev/null; then
-    print_info "Log Analytics Workspace '$LOG_ANALYTICS_WORKSPACE' already exists"
-else
-    az monitor log-analytics workspace create \
-        --resource-group "$RESOURCE_GROUP" \
-        --workspace-name "$LOG_ANALYTICS_WORKSPACE" \
-        --location "$LOCATION" \
-        --output none
-    print_success "Log Analytics Workspace '$LOG_ANALYTICS_WORKSPACE' created"
-fi
-
-LOG_ANALYTICS_WORKSPACE_ID=$(az monitor log-analytics workspace show \
-    --resource-group "$RESOURCE_GROUP" \
-    --workspace-name "$LOG_ANALYTICS_WORKSPACE" \
-    --query customerId \
-    --output tsv)
-
-LOG_ANALYTICS_KEY=$(az monitor log-analytics workspace get-shared-keys \
-    --resource-group "$RESOURCE_GROUP" \
-    --workspace-name "$LOG_ANALYTICS_WORKSPACE" \
-    --query primarySharedKey \
-    --output tsv)
-
-print_info "Log Analytics Workspace ID: $LOG_ANALYTICS_WORKSPACE_ID"
-
-# ============================================================================
-# Step 7: Create Container Apps Environment
-# ============================================================================
-print_header "Step 7: Creating Container Apps Environment"
-
-if az containerapp env show --name "$ENVIRONMENT_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-    print_info "Container Apps Environment '$ENVIRONMENT_NAME' already exists"
-else
-    az containerapp env create \
-        --name "$ENVIRONMENT_NAME" \
-        --resource-group "$RESOURCE_GROUP" \
-        --location "$LOCATION" \
-        --dapr-instrumentation-key "$AI_KEY" \
-        --logs-workspace-id "$LOG_ANALYTICS_WORKSPACE_ID" \
-        --logs-workspace-key "$LOG_ANALYTICS_KEY" \
-        --enable-workload-profiles false \
-        --output none
-    print_success "Container Apps Environment '$ENVIRONMENT_NAME' created"
-fi
-
-# ============================================================================
-# Step 8: Deploy Container App
-# ============================================================================
-print_header "Step 8: Deploying Container App"
-
-ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" --output tsv)
-
-# Build env-vars string
-ENV_VARS="NODE_ENV=production PORT=3100 HOST=0.0.0.0 LOG_LEVEL=info"
-ENV_VARS="$ENV_VARS CORS_ORIGIN=$CORS_ORIGIN"
-ENV_VARS="$ENV_VARS DAPR_HTTP_PORT=3500 DAPR_GRPC_PORT=50001 DAPR_APP_ID=web-bff"
-ENV_VARS="$ENV_VARS AUTH_SERVICE_APP_ID=auth-service"
-ENV_VARS="$ENV_VARS USER_SERVICE_APP_ID=user-service"
-ENV_VARS="$ENV_VARS PRODUCT_SERVICE_APP_ID=product-service"
-ENV_VARS="$ENV_VARS INVENTORY_SERVICE_APP_ID=inventory-service"
-ENV_VARS="$ENV_VARS CART_SERVICE_APP_ID=cart-service"
-ENV_VARS="$ENV_VARS ORDER_SERVICE_APP_ID=order-service"
-ENV_VARS="$ENV_VARS REVIEW_SERVICE_APP_ID=review-service"
-ENV_VARS="$ENV_VARS ADMIN_SERVICE_APP_ID=admin-service"
-ENV_VARS="$ENV_VARS CHAT_SERVICE_APP_ID=chat-service"
-ENV_VARS="$ENV_VARS AUTH_SERVICE_TOKEN=$AUTH_SERVICE_TOKEN"
-ENV_VARS="$ENV_VARS USER_SERVICE_TOKEN=$USER_SERVICE_TOKEN"
-ENV_VARS="$ENV_VARS PRODUCT_SERVICE_TOKEN=$PRODUCT_SERVICE_TOKEN"
-ENV_VARS="$ENV_VARS INVENTORY_SERVICE_TOKEN=$INVENTORY_SERVICE_TOKEN"
-ENV_VARS="$ENV_VARS CART_SERVICE_TOKEN=$CART_SERVICE_TOKEN"
-ENV_VARS="$ENV_VARS ORDER_SERVICE_TOKEN=$ORDER_SERVICE_TOKEN"
-ENV_VARS="$ENV_VARS REVIEW_SERVICE_TOKEN=$REVIEW_SERVICE_TOKEN"
-ENV_VARS="$ENV_VARS ADMIN_SERVICE_TOKEN=$ADMIN_SERVICE_TOKEN"
-ENV_VARS="$ENV_VARS CHAT_SERVICE_TOKEN=$CHAT_SERVICE_TOKEN"
-
-if az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-    print_info "Container app '$APP_NAME' already exists, updating..."
+# Check if container app exists
+if az containerapp show --name "$SERVICE_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
+    print_info "Container app '$SERVICE_NAME' exists, updating..."
     az containerapp update \
-        --name "$APP_NAME" \
+        --name "$SERVICE_NAME" \
         --resource-group "$RESOURCE_GROUP" \
-        --image "$ACR_LOGIN_SERVER/web-bff:latest" \
-        --set-env-vars $ENV_VARS \
+        --image "$IMAGE_TAG" \
+        --set-env-vars "${ENV_VARS[@]}" \
         --output none
+    print_success "Container app updated"
 else
-    az containerapp create \
-        --name "$APP_NAME" \
+    print_info "Creating container app '$SERVICE_NAME'..."
+    
+    # Build the create command
+    MSYS_NO_PATHCONV=1 az containerapp create \
+        --name "$SERVICE_NAME" \
         --resource-group "$RESOURCE_GROUP" \
-        --environment "$ENVIRONMENT_NAME" \
-        --image "$ACR_LOGIN_SERVER/web-bff:latest" \
+        --environment "$CONTAINER_ENV" \
+        --image "$IMAGE_TAG" \
         --registry-server "$ACR_LOGIN_SERVER" \
         --registry-username "$ACR_NAME" \
         --registry-password "$ACR_PASSWORD" \
-        --target-port 3100 \
+        --target-port $APP_PORT \
         --ingress external \
         --min-replicas 1 \
         --max-replicas 10 \
         --cpu 0.5 \
         --memory 1.0Gi \
         --enable-dapr \
-        --dapr-app-id web-bff \
-        --dapr-app-port 3100 \
-        --env-vars $ENV_VARS \
+        --dapr-app-id "$SERVICE_NAME" \
+        --dapr-app-port $APP_PORT \
+        --env-vars "${ENV_VARS[@]}" \
+        ${IDENTITY_ID:+--user-assigned "$IDENTITY_ID"} \
         --output none
+    
+    print_success "Container app created"
 fi
 
-print_success "Container app '$APP_NAME' deployed"
-
 # ============================================================================
-# Step 9: Verify Deployment
+# Step 3: Verify Deployment
 # ============================================================================
-print_header "Step 9: Verifying Deployment"
+print_header "Step 3: Verifying Deployment"
 
 APP_URL=$(az containerapp show \
-    --name "$APP_NAME" \
+    --name "$SERVICE_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --query properties.configuration.ingress.fqdn \
-    --output tsv)
+    -o tsv)
 
-print_success "Deployment completed successfully!"
+print_success "Deployment completed!"
 echo ""
 print_info "Application URL: https://$APP_URL"
-print_info "Health Check: https://$APP_URL/health"
+print_info "Health Check:    https://$APP_URL/health"
 echo ""
 
 # Test health endpoint
-print_info "Testing health endpoint..."
-sleep 10  # Wait for app to start
+print_info "Waiting for app to start (30s)..."
+sleep 30
 
-if curl -s --max-time 30 "https://$APP_URL/health" > /dev/null; then
-    print_success "Health check passed!"
+print_info "Testing health endpoint..."
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://$APP_URL/health" 2>/dev/null || echo "000")
+
+if [ "$HTTP_STATUS" = "200" ]; then
+    print_success "Health check passed! (HTTP $HTTP_STATUS)"
 else
-    print_warning "Health check failed or timed out. The app may still be starting."
+    print_warning "Health check returned HTTP $HTTP_STATUS. The app may still be starting."
 fi
 
 # ============================================================================
@@ -416,25 +389,34 @@ fi
 # ============================================================================
 print_header "Deployment Summary"
 
-echo "Resource Group:       $RESOURCE_GROUP"
-echo "Location:             $LOCATION"
-echo "Container Registry:   $ACR_LOGIN_SERVER"
-echo "Environment:          $ENVIRONMENT_NAME"
-echo "Application URL:      https://$APP_URL"
-echo "CORS Origin:          $CORS_ORIGIN"
+echo -e "${GREEN}==============================================================================${NC}"
+echo -e "${GREEN}   ✅ $SERVICE_NAME DEPLOYED SUCCESSFULLY${NC}"
+echo -e "${GREEN}==============================================================================${NC}"
 echo ""
-echo "Backend Services (Dapr App IDs):"
-echo "  - auth-service"
-echo "  - user-service"
-echo "  - product-service"
-echo "  - inventory-service"
-echo "  - cart-service"
-echo "  - order-service"
-echo "  - review-service"
-echo "  - admin-service"
-echo "  - chat-service"
+echo -e "${CYAN}Application:${NC}"
+echo "   URL:              https://$APP_URL"
+echo "   Health:           https://$APP_URL/health"
 echo ""
-print_info "To view logs: az containerapp logs show --name $APP_NAME --resource-group $RESOURCE_GROUP --follow"
-print_info "To delete: az containerapp delete --name $APP_NAME --resource-group $RESOURCE_GROUP --yes"
+echo -e "${CYAN}Infrastructure:${NC}"
+echo "   Resource Group:   $RESOURCE_GROUP"
+echo "   Environment:      $CONTAINER_ENV"
+echo "   Registry:         $ACR_LOGIN_SERVER"
 echo ""
-print_warning "Note: Ensure all backend services are deployed with matching Dapr app IDs for service invocation to work."
+echo -e "${CYAN}Backend Services (Dapr App IDs):${NC}"
+echo "   auth-service      - Authentication service"
+echo "   user-service      - User management"
+echo "   product-service   - Product catalog"
+echo "   inventory-service - Inventory management"
+echo "   cart-service      - Shopping cart"
+echo "   order-service     - Order management"
+echo "   review-service    - Product reviews"
+echo "   admin-service     - Admin operations"
+echo "   chat-service      - Customer support chat"
+echo ""
+echo -e "${CYAN}Useful Commands:${NC}"
+echo -e "   View logs:        ${BLUE}az containerapp logs show --name $SERVICE_NAME --resource-group $RESOURCE_GROUP --follow${NC}"
+echo -e "   View Dapr logs:   ${BLUE}az containerapp logs show --name $SERVICE_NAME --resource-group $RESOURCE_GROUP --container daprd --follow${NC}"
+echo -e "   Delete app:       ${BLUE}az containerapp delete --name $SERVICE_NAME --resource-group $RESOURCE_GROUP --yes${NC}"
+echo ""
+print_warning "Note: Ensure all backend services are deployed for full functionality."
+echo ""
