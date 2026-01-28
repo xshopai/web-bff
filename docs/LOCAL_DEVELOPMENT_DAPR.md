@@ -70,8 +70,8 @@ CORS_ORIGIN=http://localhost:3000
 LOG_LEVEL=debug
 
 # Dapr Configuration
-DAPR_HTTP_PORT=3600
-DAPR_GRPC_PORT=50060
+DAPR_HTTP_PORT=3500
+DAPR_GRPC_PORT=50001
 DAPR_APP_ID=web-bff
 
 # Backend Services (Dapr App IDs)
@@ -126,14 +126,16 @@ spec:
 
 The BFF invokes backend services using Dapr's service invocation building block:
 
+> **Note:** All services now use the standard Dapr ports (3500 for HTTP, 50001 for gRPC). This simplifies configuration and works consistently whether running via Docker Compose or individual service runs.
+
 | Service           | Dapr App ID         | Default URL (via Dapr)                                           |
 | ----------------- | ------------------- | ---------------------------------------------------------------- |
-| Auth Service      | `auth-service`      | `http://localhost:3600/v1.0/invoke/auth-service/method/...`      |
-| User Service      | `user-service`      | `http://localhost:3600/v1.0/invoke/user-service/method/...`      |
-| Product Service   | `product-service`   | `http://localhost:3600/v1.0/invoke/product-service/method/...`   |
-| Inventory Service | `inventory-service` | `http://localhost:3600/v1.0/invoke/inventory-service/method/...` |
-| Cart Service      | `cart-service`      | `http://localhost:3600/v1.0/invoke/cart-service/method/...`      |
-| Order Service     | `order-service`     | `http://localhost:3600/v1.0/invoke/order-service/method/...`     |
+| Auth Service      | `auth-service`      | `http://localhost:3500/v1.0/invoke/auth-service/method/...`      |
+| User Service      | `user-service`      | `http://localhost:3500/v1.0/invoke/user-service/method/...`      |
+| Product Service   | `product-service`   | `http://localhost:3500/v1.0/invoke/product-service/method/...`   |
+| Inventory Service | `inventory-service` | `http://localhost:3500/v1.0/invoke/inventory-service/method/...` |
+| Cart Service      | `cart-service`      | `http://localhost:3500/v1.0/invoke/cart-service/method/...`      |
+| Order Service     | `order-service`     | `http://localhost:3500/v1.0/invoke/order-service/method/...`     |
 
 ---
 
@@ -149,28 +151,28 @@ Open separate terminals for each service:
 
 ```powershell
 cd ../auth-service
-dapr run --app-id auth-service --app-port 1001 --dapr-http-port 3501 --dapr-grpc-port 50001 --resources-path .dapr/components --config .dapr/config.yaml -- npm run dev
+dapr run --app-id auth-service --app-port 1001 --dapr-http-port 3500 --dapr-grpc-port 50001 --resources-path .dapr/components --config .dapr/config.yaml -- npm run dev
 ```
 
 **User Service:**
 
 ```powershell
 cd ../user-service
-dapr run --app-id user-service --app-port 8002 --dapr-http-port 3502 --dapr-grpc-port 50002 --resources-path .dapr/components --config .dapr/config.yaml -- npm run dev
+dapr run --app-id user-service --app-port 8002 --dapr-http-port 3500 --dapr-grpc-port 50001 --resources-path .dapr/components --config .dapr/config.yaml -- npm run dev
 ```
 
 **Product Service:**
 
 ```powershell
 cd ../product-service
-dapr run --app-id product-service --app-port 8001 --dapr-http-port 3503 --dapr-grpc-port 50003 --resources-path .dapr/components --config .dapr/config.yaml -- python main.py
+dapr run --app-id product-service --app-port 8001 --dapr-http-port 3500 --dapr-grpc-port 50001 --resources-path .dapr/components --config .dapr/config.yaml -- python main.py
 ```
 
 **Inventory Service:**
 
 ```powershell
 cd ../inventory-service
-dapr run --app-id inventory-service --app-port 5001 --dapr-http-port 3504 --dapr-grpc-port 50004 --resources-path .dapr/components --config .dapr/config.yaml -- python main.py
+dapr run --app-id inventory-service --app-port 5001 --dapr-http-port 3500 --dapr-grpc-port 50001 --resources-path .dapr/components --config .dapr/config.yaml -- python main.py
 ```
 
 ### Option 2: Use Docker Compose (Recommended)
@@ -197,8 +199,8 @@ If using VS Code, each service folder has tasks defined. Use **Terminal > Run Ta
 dapr run `
   --app-id web-bff `
   --app-port 3100 `
-  --dapr-http-port 3600 `
-  --dapr-grpc-port 50060 `
+  --dapr-http-port 3500 `
+  --dapr-grpc-port 50001 `
   --resources-path .dapr/components `
   --config .dapr/config.yaml `
   --log-level warn `
@@ -208,7 +210,7 @@ dapr run `
 **Expected Output:**
 
 ```
-ℹ️  Starting Dapr with id web-bff. HTTP Port: 3600. gRPC Port: 50060
+ℹ️  Starting Dapr with id web-bff. HTTP Port: 3500. gRPC Port: 50001
 ...
 == APP == 2025-01-24T10:30:00.000Z info: Server running on http://0.0.0.0:3100
 == APP == 2025-01-24T10:30:00.000Z info: Dapr sidecar available at http://localhost:3600
@@ -241,7 +243,7 @@ dapr run `
 curl http://localhost:3100/health
 
 # Via Dapr sidecar
-curl http://localhost:3600/v1.0/healthz
+curl http://localhost:3500/v1.0/healthz
 ```
 
 ### Service Discovery
@@ -252,9 +254,9 @@ dapr list
 
 # Expected output:
 # APP ID            HTTP PORT  GRPC PORT  APP PORT  COMMAND
-# web-bff           3600       50060      3100      npm run dev
-# auth-service      3501       50001      1001      ...
-# user-service      3502       50002      8002      ...
+# web-bff           3500       50001      3100      npm run dev
+# auth-service      3500       50001      1001      ...
+# user-service      3500       50001      8002      ...
 ```
 
 ### Test API Endpoints
@@ -344,9 +346,9 @@ Add to `.vscode/tasks.json`:
         "--app-port",
         "3100",
         "--dapr-http-port",
-        "3600",
+        "3500",
         "--dapr-grpc-port",
-        "50060",
+        "50001",
         "--resources-path",
         ".dapr/components",
         "--config",
@@ -376,7 +378,7 @@ Add to `.vscode/tasks.json`:
 1. Start Dapr sidecar (without app):
 
 ```powershell
-dapr run --app-id web-bff --app-port 3100 --dapr-http-port 3600 --dapr-grpc-port 50060 --resources-path .dapr/components --config .dapr/config.yaml
+dapr run --app-id web-bff --app-port 3100 --dapr-http-port 3500 --dapr-grpc-port 50001 --resources-path .dapr/components --config .dapr/config.yaml
 ```
 
 2. Start app with debugger:
@@ -450,7 +452,7 @@ netstat -ano | findstr :3600
 
 ```powershell
 # Test direct service invocation via Dapr
-curl http://localhost:3600/v1.0/invoke/product-service/method/health
+curl http://localhost:3500/v1.0/invoke/product-service/method/health
 ```
 
 ### Tracing Not Working

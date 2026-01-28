@@ -79,8 +79,10 @@ The Web BFF (Backend for Frontend) Service is an API gateway and aggregation lay
 | API Docs       | OpenAPI/Swagger                        |
 | Messaging      | Dapr Service Invocation (no pub/sub)   |
 | Main Port      | 3100                                   |
-| Dapr HTTP Port | 3600                                   |
-| Dapr gRPC Port | 50060                                  |
+| Dapr HTTP Port | 3500                                   |
+| Dapr gRPC Port | 50001                                  |
+
+> **Note:** All services now use the standard Dapr ports (3500 for HTTP, 50001 for gRPC). This simplifies configuration and works consistently whether running via Docker Compose or individual service runs.
 
 ### 1.4 Directory Structure
 
@@ -286,7 +288,7 @@ flowchart TB
 
 | Component    | Purpose            | Port/Connection         |
 | ------------ | ------------------ | ----------------------- |
-| Dapr Sidecar | Service invocation | HTTP: 3600, gRPC: 50060 |
+| Dapr Sidecar | Service invocation | HTTP: 3500, gRPC: 50001 |
 
 ---
 
@@ -513,8 +515,8 @@ The BFF implements several aggregation patterns:
 | `HOST`                     | Server bind address                    | `0.0.0.0`               |
 | `ALLOWED_ORIGINS`          | CORS allowed origins (comma-separated) | `http://localhost:3000` |
 | `LOG_LEVEL`                | Logging level                          | `info`                  |
-| `DAPR_HTTP_PORT`           | Dapr sidecar HTTP port                 | `3600`                  |
-| `DAPR_GRPC_PORT`           | Dapr sidecar gRPC port                 | `50060`                 |
+| `DAPR_HTTP_PORT`           | Dapr sidecar HTTP port                 | `3500`                  |
+| `DAPR_GRPC_PORT`           | Dapr sidecar gRPC port                 | `50001`                 |
 | `AUTH_SERVICE_APP_ID`      | Auth service Dapr app ID               | `auth-service`          |
 | `USER_SERVICE_APP_ID`      | User service Dapr app ID               | `user-service`          |
 | `PRODUCT_SERVICE_APP_ID`   | Product service Dapr app ID            | `product-service`       |

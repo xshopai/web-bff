@@ -140,22 +140,24 @@ The Web BFF service communicates with multiple backend services via Dapr. For lo
 
 ### Backend Services (Required)
 
+> **Note:** All services now use the standard Dapr ports (3500 for HTTP, 50001 for gRPC). This simplifies configuration and works consistently whether running via Docker Compose or individual service runs.
+
 | Service           | Default Port | Dapr HTTP Port | Dapr gRPC Port |
 | ----------------- | ------------ | -------------- | -------------- |
-| Auth Service      | 1001         | 3501           | 50001          |
-| User Service      | 8002         | 3502           | 50002          |
-| Product Service   | 8001         | 3503           | 50003          |
-| Inventory Service | 5001         | 3504           | 50004          |
-| Cart Service      | 8084         | 3505           | 50005          |
-| Order Service     | 1006         | 3506           | 50006          |
+| Auth Service      | 1001         | 3500           | 50001          |
+| User Service      | 8002         | 3500           | 50001          |
+| Product Service   | 8001         | 3500           | 50001          |
+| Inventory Service | 5001         | 3500           | 50001          |
+| Cart Service      | 8084         | 3500           | 50001          |
+| Order Service     | 1006         | 3500           | 50001          |
 
 ### Backend Services (Optional)
 
 | Service        | Default Port | Dapr HTTP Port | Dapr gRPC Port |
 | -------------- | ------------ | -------------- | -------------- |
-| Review Service | 3003         | 3507           | 50007          |
-| Admin Service  | 3004         | 3508           | 50008          |
-| Chat Service   | 3005         | 3509           | 50009          |
+| Review Service | 3003         | 3500           | 50001          |
+| Admin Service  | 3004         | 3500           | 50001          |
+| Chat Service   | 3005         | 3500           | 50001          |
 
 ### Infrastructure Components
 

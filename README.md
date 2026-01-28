@@ -59,7 +59,7 @@ curl http://localhost:3100/health
 # Should return: {"status":"UP","service":"web-bff"...}
 
 # Via Dapr
-curl http://localhost:3600/v1.0/invoke/web-bff/method/health
+curl http://localhost:3500/v1.0/invoke/web-bff/method/health
 ```
 
 ### Common Commands
@@ -116,10 +116,12 @@ CART_SERVICE_APP_ID=cart-service
 REVIEW_SERVICE_APP_ID=review-service
 
 # Dapr
-DAPR_HTTP_PORT=3600              # Dapr sidecar HTTP port
-DAPR_GRPC_PORT=50060             # Dapr sidecar gRPC port
+DAPR_HTTP_PORT=3500              # Dapr sidecar HTTP port
+DAPR_GRPC_PORT=50001             # Dapr sidecar gRPC port
 DAPR_APP_ID=web-bff              # Dapr application ID
 ```
+
+> **Note:** All services now use the standard Dapr ports (3500 for HTTP, 50001 for gRPC). This simplifies configuration and works consistently whether running via Docker Compose or individual service runs.
 
 See [.env.example](.env.example) for complete configuration options.
 
