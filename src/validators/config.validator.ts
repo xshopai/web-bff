@@ -37,7 +37,7 @@ const isValidPort = (port: string | number): boolean => {
  * @returns {boolean} - True if valid, false otherwise
  */
 const isValidNodeEnv = (env: string): boolean => {
-  const validEnvs = ['development', 'production', 'test', 'staging'];
+  const validEnvs = ['development', 'production', 'test'];
   return validEnvs.includes(env?.toLowerCase());
 };
 
@@ -65,7 +65,7 @@ const validationRules: Record<string, ValidationRule> = {
   NODE_ENV: {
     required: true,
     validator: isValidNodeEnv,
-    errorMessage: 'NODE_ENV must be one of: development, production, test, staging',
+    errorMessage: 'NODE_ENV must be one of: development, production, test',
   },
   PORT: {
     required: true,

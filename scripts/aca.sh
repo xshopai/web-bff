@@ -103,16 +103,15 @@ SERVICE_DIR="$(dirname "$SCRIPT_DIR")"
 # ============================================================================
 echo -e "${CYAN}Available Environments:${NC}"
 echo "   dev     - Development environment"
-echo "   staging - Staging/QA environment"
 echo "   prod    - Production environment"
 echo ""
 
-read -p "Enter environment (dev/staging/prod) [dev]: " ENVIRONMENT
+read -p "Enter environment (dev/prod) [dev]: " ENVIRONMENT
 ENVIRONMENT="${ENVIRONMENT:-dev}"
 
-if [[ ! "$ENVIRONMENT" =~ ^(dev|staging|prod)$ ]]; then
+if [[ ! "$ENVIRONMENT" =~ ^(dev|prod)$ ]]; then
     print_error "Invalid environment: $ENVIRONMENT"
-    echo "   Valid values: dev, staging, prod"
+    echo "   Valid values: dev, prod"
     exit 1
 fi
 print_success "Environment: $ENVIRONMENT"
@@ -122,11 +121,6 @@ case "$ENVIRONMENT" in
     dev)
         NODE_ENV="development"
         LOG_LEVEL="debug"
-        CORS_ORIGIN="*"
-        ;;
-    staging)
-        NODE_ENV="staging"
-        LOG_LEVEL="info"
         CORS_ORIGIN="*"
         ;;
     prod)
@@ -171,11 +165,15 @@ CONTAINER_ENV="cae-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
 KEY_VAULT="kv-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
 MANAGED_IDENTITY="id-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
 
+# Container App name follows convention: ca-{service}-{env}-{suffix}
+CONTAINER_APP_NAME="ca-${SERVICE_NAME}-${ENVIRONMENT}-${SUFFIX}"
+
 print_info "Derived resource names:"
 echo "   Resource Group:      $RESOURCE_GROUP"
 echo "   Container Registry:  $ACR_NAME"
 echo "   Container Env:       $CONTAINER_ENV"
 echo "   Key Vault:           $KEY_VAULT"
+echo "   Container App:       $CONTAINER_APP_NAME"
 echo ""
 
 # ============================================================================
@@ -321,21 +319,22 @@ ENV_VARS+=("ADMIN_SERVICE_APP_ID=admin-service")
 ENV_VARS+=("CHAT_SERVICE_APP_ID=chat-service")
 
 # Check if container app exists
-if az containerapp show --name "$SERVICE_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-    print_info "Container app '$SERVICE_NAME' exists, updating..."
+if az containerapp show --name "$CONTAINER_APP_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
+    print_info "Container app '$CONTAINER_APP_NAME' exists, updating..."
     az containerapp update \
-        --name "$SERVICE_NAME" \
+        --name "$CONTAINER_APP_NAME" \
         --resource-group "$RESOURCE_GROUP" \
         --image "$IMAGE_TAG" \
         --set-env-vars "${ENV_VARS[@]}" \
         --output none
     print_success "Container app updated"
 else
-    print_info "Creating container app '$SERVICE_NAME'..."
+    print_info "Creating container app '$CONTAINER_APP_NAME'..."
     
     # Build the create command
     MSYS_NO_PATHCONV=1 az containerapp create \
-        --name "$SERVICE_NAME" \
+        --name "$CONTAINER_APP_NAME" \
+        --container-name "$SERVICE_NAME" \
         --resource-group "$RESOURCE_GROUP" \
         --environment "$CONTAINER_ENV" \
         --image "$IMAGE_TAG" \
@@ -364,7 +363,7 @@ fi
 print_header "Step 3: Verifying Deployment"
 
 APP_URL=$(az containerapp show \
-    --name "$SERVICE_NAME" \
+    --name "$CONTAINER_APP_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --query properties.configuration.ingress.fqdn \
     -o tsv)
