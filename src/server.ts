@@ -1,5 +1,6 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// Application Insights MUST be initialized before other imports
+// (instrumentation.ts loads dotenv internally)
+import './instrumentation';
 
 import validateConfig from './validators/config.validator';
 

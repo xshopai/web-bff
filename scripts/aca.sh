@@ -207,6 +207,18 @@ if ! az containerapp env show --name "$CONTAINER_ENV" --resource-group "$RESOURC
 fi
 print_success "Container Apps Environment exists: $CONTAINER_ENV"
 
+# Get Application Insights Connection String
+APP_INSIGHTS_NAME="appi-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
+APP_INSIGHTS_CONN_STRING=$(az monitor app-insights component show \
+    --app "$APP_INSIGHTS_NAME" \
+    --resource-group "$RESOURCE_GROUP" \
+    --query connectionString -o tsv 2>/dev/null || echo "")
+if [ -z "$APP_INSIGHTS_CONN_STRING" ]; then
+    print_warning "Application Insights not found, telemetry will be disabled"
+else
+    print_success "Application Insights found: $APP_INSIGHTS_NAME"
+fi
+
 # Get Managed Identity ID
 IDENTITY_ID=$(MSYS_NO_PATHCONV=1 az identity show --name "$MANAGED_IDENTITY" --resource-group "$RESOURCE_GROUP" --query id -o tsv 2>/dev/null || echo "")
 if [ -z "$IDENTITY_ID" ]; then
@@ -318,6 +330,11 @@ ENV_VARS+=("ORDER_SERVICE_APP_ID=order-service")
 ENV_VARS+=("REVIEW_SERVICE_APP_ID=review-service")
 ENV_VARS+=("ADMIN_SERVICE_APP_ID=admin-service")
 ENV_VARS+=("CHAT_SERVICE_APP_ID=chat-service")
+
+# Application Insights (for distributed tracing)
+if [ -n "$APP_INSIGHTS_CONN_STRING" ]; then
+    ENV_VARS+=("APPLICATIONINSIGHTS_CONNECTION_STRING=$APP_INSIGHTS_CONN_STRING")
+fi
 
 # Check if container app exists
 if az containerapp show --name "$CONTAINER_APP_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then

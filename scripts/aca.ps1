@@ -188,6 +188,24 @@ try {
     $IdentityId = $null
 }
 
+# Get Application Insights Connection String (for distributed tracing)
+$AppInsightsName = "appi-$ProjectName-$Environment-$Suffix"
+try {
+    $AppInsightsConnectionString = az monitor app-insights component show `
+        --app $AppInsightsName `
+        --resource-group $ResourceGroup `
+        --query connectionString -o tsv 2>$null
+    if ($AppInsightsConnectionString) {
+        Write-Success "Application Insights found: $AppInsightsName"
+    } else {
+        Write-Warning "Application Insights connection string not found, telemetry will be disabled"
+        $AppInsightsConnectionString = ""
+    }
+} catch {
+    Write-Warning "Application Insights not found, telemetry will be disabled"
+    $AppInsightsConnectionString = ""
+}
+
 # ============================================================================
 # Backend Services Configuration
 # ============================================================================
@@ -306,6 +324,7 @@ if ($AppExists) {
             "REVIEW_SERVICE_APP_ID=review-service" `
             "ADMIN_SERVICE_APP_ID=admin-service" `
             "CHAT_SERVICE_APP_ID=chat-service" `
+            "APPLICATIONINSIGHTS_CONNECTION_STRING=$AppInsightsConnectionString" `
         --output none
     Write-Success "Container app updated"
 } else {
@@ -348,6 +367,7 @@ if ($AppExists) {
             "REVIEW_SERVICE_APP_ID=review-service",
             "ADMIN_SERVICE_APP_ID=admin-service",
             "CHAT_SERVICE_APP_ID=chat-service",
+            "APPLICATIONINSIGHTS_CONNECTION_STRING=$AppInsightsConnectionString",
         "--output", "none"
     )
     
