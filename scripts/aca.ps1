@@ -306,7 +306,7 @@ if ($AppExists) {
         --image $ImageTag `
         --set-env-vars `
             "NODE_ENV=$NodeEnv" `
-            "NAME=$ServiceName" `
+            "SERVICE_NAME=$ServiceName" `
             "VERSION=$ServiceVersion" `
             "PORT=$AppPort" `
             "HOST=0.0.0.0" `
@@ -349,7 +349,7 @@ if ($AppExists) {
         "--dapr-app-port", $AppPort,
         "--env-vars",
             "NODE_ENV=$NodeEnv",
-            "NAME=$ServiceName",
+            "SERVICE_NAME=$ServiceName",
             "VERSION=$ServiceVersion",
             "PORT=$AppPort",
             "HOST=0.0.0.0",

@@ -309,7 +309,7 @@ ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].v
 
 # Build environment variables
 ENV_VARS=("NODE_ENV=$NODE_ENV")
-ENV_VARS+=("NAME=$SERVICE_NAME")
+ENV_VARS+=("SERVICE_NAME=$SERVICE_NAME")
 ENV_VARS+=("VERSION=$SERVICE_VERSION")
 ENV_VARS+=("PORT=$APP_PORT")
 ENV_VARS+=("HOST=0.0.0.0")

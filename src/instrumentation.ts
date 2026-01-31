@@ -7,6 +7,13 @@
 import dotenv from 'dotenv';
 dotenv.config(); // Load env vars first (for local development)
 
+const serviceName = process.env.SERVICE_NAME || 'web-bff';
+
+// Set OTEL environment variables BEFORE loading applicationinsights
+// (OpenTelemetry reads these before our code can set cloud role name)
+process.env.OTEL_SERVICE_NAME = serviceName;
+process.env.OTEL_RESOURCE_ATTRIBUTES = `service.name=${serviceName}`;
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appInsights = require('applicationinsights');
 
@@ -22,16 +29,17 @@ if (connectionString) {
     .setAutoCollectConsole(true, true)
     .setUseDiskRetryCaching(true)
     .setDistributedTracingMode(appInsights.DistributedTracingModes.AI_AND_W3C)
-    .setSendLiveMetrics(true)
-    .start();
+    .setSendLiveMetrics(true);
 
-  // Set cloud role name for Application Map
-  if (appInsights.defaultClient) {
-    appInsights.defaultClient.context.tags[appInsights.defaultClient.context.keys.cloudRole] =
-      'web-bff';
-  }
+  // Set cloud role name BEFORE starting (required for Application Map)
+  appInsights.defaultClient.context.tags[appInsights.defaultClient.context.keys.cloudRole] =
+    serviceName;
+  appInsights.defaultClient.context.tags[appInsights.defaultClient.context.keys.cloudRoleInstance] =
+    process.env.HOSTNAME || serviceName;
 
-  console.log('✅ Application Insights initialized for web-bff');
+  appInsights.start();
+
+  console.log(`✅ Application Insights initialized for ${serviceName}`);
 } else {
   console.log('⚠️ APPLICATIONINSIGHTS_CONNECTION_STRING not set - telemetry disabled');
 }
