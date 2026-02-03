@@ -7,6 +7,7 @@ import { traceContextMiddleware } from '@middleware/traceContext.middleware';
 import { errorMiddleware } from '@middleware/error.middleware';
 import homeRoutes from '@routes/home.routes';
 import operationalRoutes from '@routes/operational.routes';
+import daprRoutes from '@routes/dapr.routes';
 
 const app: Application = express();
 
@@ -33,6 +34,7 @@ app.use(traceContextMiddleware as express.RequestHandler); // W3C Trace Context
 // API routes
 app.use('/', homeRoutes);
 app.use('/', operationalRoutes);
+app.use('/', daprRoutes); // Dapr sidecar discovery endpoints
 app.use('/api', routes);
 
 // 404 handler
