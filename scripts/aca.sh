@@ -253,6 +253,39 @@ fi
 print_success "Container app deployed"
 
 # ============================================================================
+# CONFIGURE CORS POLICY
+# ============================================================================
+print_header "Configuring CORS Policy"
+
+# Set up basic CORS with localhost origins only
+# Customer-UI and Admin-UI will update this when they deploy
+CORS_ORIGINS="http://localhost:3000 http://localhost:3001"
+
+# Check if any Static Web Apps are already deployed and add them
+CUSTOMER_UI_URL=$(az staticwebapp show --name "swa-customer-ui-${ENVIRONMENT}-${SUFFIX}" --resource-group "$RESOURCE_GROUP" --query "defaultHostname" -o tsv 2>/dev/null || echo "")
+ADMIN_UI_URL=$(az staticwebapp show --name "swa-admin-ui-${ENVIRONMENT}-${SUFFIX}" --resource-group "$RESOURCE_GROUP" --query "defaultHostname" -o tsv 2>/dev/null || echo "")
+
+[ -n "$CUSTOMER_UI_URL" ] && CORS_ORIGINS="https://$CUSTOMER_UI_URL $CORS_ORIGINS" && print_info "Including customer-ui: https://$CUSTOMER_UI_URL"
+[ -n "$ADMIN_UI_URL" ] && CORS_ORIGINS="https://$ADMIN_UI_URL $CORS_ORIGINS" && print_info "Including admin-ui: https://$ADMIN_UI_URL"
+
+# For production, add custom domains here
+# [ "$ENVIRONMENT" = "prod" ] && CORS_ORIGINS="https://shop.xshopai.com https://admin.xshopai.com $CORS_ORIGINS"
+
+print_info "Configuring CORS with origins: $CORS_ORIGINS"
+
+az containerapp ingress cors enable \
+    --name "$CONTAINER_APP_NAME" \
+    --resource-group "$RESOURCE_GROUP" \
+    --allowed-origins $CORS_ORIGINS \
+    --allowed-methods GET POST PUT PATCH DELETE OPTIONS \
+    --allowed-headers "*" \
+    --expose-headers traceparent x-correlation-id \
+    --allow-credentials true \
+    --output none 2>/dev/null || print_warning "CORS may already be configured"
+
+print_success "CORS policy configured"
+
+# ============================================================================
 # VERIFY DEPLOYMENT
 # ============================================================================
 print_header "Verifying Deployment"
