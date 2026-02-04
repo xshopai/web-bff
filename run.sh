@@ -1,17 +1,20 @@
-#!/usr/bin/env bash
-# Run Web BFF with Dapr sidecar
-# Usage: ./run.sh
+#!/bin/bash
 
-echo -e "\033[0;32mStarting Web BFF with Dapr...\033[0m"
-echo -e "\033[0;36mService will be available at: http://localhost:8014\033[0m"
-echo -e "\033[0;36mDapr HTTP endpoint: http://localhost:3500\033[0m"
-echo -e "\033[0;36mDapr gRPC endpoint: localhost:50001\033[0m"
+# Web BFF - Run with Dapr
+
+echo "Starting Web BFF with Dapr..."
+echo "Service will be available at: http://localhost:8014"
+echo "Dapr HTTP endpoint: http://localhost:3514"
+echo "Dapr gRPC endpoint: localhost:50014"
 echo ""
 
 dapr run \
   --app-id web-bff \
   --app-port 8014 \
-  --dapr-http-port 3500 \
-  --dapr-grpc-port 50001 \
-  --log-level warn \
+  --dapr-http-port 3514 \
+  --dapr-grpc-port 50014 \
+  --log-level info \
+  --config ./.dapr/config.yaml \
+  --resources-path ./.dapr/components \
   -- npx tsx watch src/server.ts
+

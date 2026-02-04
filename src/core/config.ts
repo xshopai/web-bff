@@ -36,14 +36,14 @@ interface Config {
 
 const config: Config = {
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '8080', 10),
+  port: parseInt(process.env.PORT || '8014', 10),
   host: process.env.HOST || '0.0.0.0',
   allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
   dapr: {
     host: process.env.DAPR_HOST || 'localhost',
-    httpPort: parseInt(process.env.DAPR_HTTP_PORT || '3500', 10),
-    grpcPort: parseInt(process.env.DAPR_GRPC_PORT || '50001', 10),
-    appPort: parseInt(process.env.PORT || '8080', 10),
+    httpPort: parseInt(process.env.DAPR_HTTP_PORT || '3514', 10),
+    grpcPort: parseInt(process.env.DAPR_GRPC_PORT || '50014', 10),
+    appPort: parseInt(process.env.PORT || '8014', 10),
     pubsubName: 'pubsub',
   },
   services: {

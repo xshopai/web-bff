@@ -3,20 +3,14 @@ kind: Configuration
 metadata:
   name: web-bff-config
 spec:
-  features:
-    - name: SchedulerReminders
-      enabled: false
-    - name: Actor.TypeMetadata
-      enabled: false
   scheduler:
     enabled: false
   tracing:
     samplingRate: '1'
-    otel:
-      endpointAddress: 'localhost:4318'
-      isSecure: false
-      protocol: 'http'
-  mtls:
-    enabled: false
-  actors:
-    enabled: false
+    zipkin:
+      endpointAddress: 'http://localhost:9411/api/v2/spans'
+  metric:
+    enabled: true
+  accessControl:
+    defaultAction: allow
+    trustDomain: 'public'

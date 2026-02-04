@@ -88,7 +88,21 @@ class DaprClientService {
   async publishEvent(topicName: string, eventData: unknown): Promise<void> {
     try {
       const client = this.ensureClient();
-      await client.pubsub.publish(config.dapr.pubsubName, topicName, eventData as string | object);
+
+      // CRITICAL: Tell Dapr the payload is already CloudEvents formatted
+      // This prevents double-wrapping and ensures subscribers receive the data correctly
+      const publishOptions = {
+        metadata: {
+          rawPayload: 'true',
+        },
+      };
+
+      await client.pubsub.publish(
+        config.dapr.pubsubName,
+        topicName,
+        eventData as string | object,
+        publishOptions
+      );
       logger.info(`[Dapr] Event published to topic: ${topicName}`);
     } catch (error: unknown) {
       const err = error as Error;
