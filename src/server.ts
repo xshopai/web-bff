@@ -1,6 +1,9 @@
-// Application Insights MUST be initialized before other imports
-// (instrumentation.ts loads dotenv internally)
-import './instrumentation';
+// Load environment variables FIRST
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Initialize Zipkin tracing BEFORE other imports
+import './tracing.js';
 
 import validateConfig from './validators/config.validator';
 
