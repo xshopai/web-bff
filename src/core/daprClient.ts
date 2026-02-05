@@ -12,7 +12,7 @@ class DaprClientService {
 
   constructor() {
     this.useDapr = config.messagingProvider === 'dapr';
-    
+
     if (this.useDapr) {
       logger.info('[DaprClientService] Using Dapr service invocation');
     } else {
@@ -46,7 +46,7 @@ class DaprClientService {
       'admin-service': config.serviceUrls.admin,
       'chat-service': config.serviceUrls.chat,
     };
-    
+
     return serviceUrlMap[appId] || `http://${appId}:8000`;
   }
 
@@ -68,7 +68,7 @@ class DaprClientService {
   ): Promise<T> {
     try {
       const cleanMethodName = methodName.startsWith('/') ? methodName.slice(1) : methodName;
-      
+
       let url: string;
       if (this.useDapr) {
         // Use Dapr service invocation
@@ -100,17 +100,22 @@ class DaprClientService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        logger.error(`[${this.useDapr ? 'Dapr' : 'Direct'}] HTTP ${response.status} from ${appId}: ${errorText}`);
+        logger.error(
+          `[${this.useDapr ? 'Dapr' : 'Direct'}] HTTP ${response.status} from ${appId}: ${errorText}`
+        );
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       return (await response.json()) as T;
     } catch (error: unknown) {
       const err = error as Error;
-      logger.error(`[${this.useDapr ? 'Dapr' : 'Direct'}] Service invocation failed: ${appId}/${methodName}`, {
-        error: err.message,
-        stack: err.stack,
-      });
+      logger.error(
+        `[${this.useDapr ? 'Dapr' : 'Direct'}] Service invocation failed: ${appId}/${methodName}`,
+        {
+          error: err.message,
+          stack: err.stack,
+        }
+      );
       throw error;
     }
   }
