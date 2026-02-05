@@ -5,27 +5,39 @@
  * NOTE: Environment variables are loaded in server.ts before this module is imported
  */
 
-import { DaprClient } from '@dapr/dapr';
 import logger from '../core/logger.js';
+
+// Check if Dapr is enabled before loading anything
+const daprEnabled = (process.env.DAPR_ENABLED || 'false').toLowerCase() === 'true';
 
 class DaprSecretManager {
   private environment: string;
   private daprHost: string;
   private daprPort: string;
   private secretStoreName: string;
-  private client: DaprClient;
+  private client: any | null;
+  private daprEnabled: boolean;
 
   constructor() {
     this.environment = process.env.NODE_ENV || 'development';
     this.daprHost = process.env.DAPR_HOST || '127.0.0.1';
     this.daprPort = process.env.DAPR_HTTP_PORT || '3500';
-
     this.secretStoreName = 'secretstore';
+    this.daprEnabled = daprEnabled;
 
-    this.client = new DaprClient({
-      daprHost: this.daprHost,
-      daprPort: this.daprPort,
-    });
+    // Skip Dapr client if not using Dapr
+    if (!this.daprEnabled) {
+      logger.info('Secret manager initialized (Dapr skipped)', {
+        event: 'secret_manager_init',
+        daprEnabled: false,
+        environment: this.environment,
+      });
+      this.client = null;
+      return;
+    }
+
+    // Only import and initialize DaprClient when using Dapr
+    this._initDaprClient();
 
     logger.info('Secret manager initialized', {
       event: 'secret_manager_init',
@@ -35,12 +47,26 @@ class DaprSecretManager {
     });
   }
 
+  private async _initDaprClient() {
+    // Dynamic import only when Dapr is enabled
+    const { DaprClient } = await import('@dapr/dapr');
+    this.client = new DaprClient({
+      daprHost: this.daprHost,
+      daprPort: this.daprPort,
+    });
+  }
+
   /**
    * Get a secret value from Dapr secret store
    * @param secretName - Name of the secret to retrieve
    * @returns Secret value
    */
   async getSecret(secretName: string): Promise<string> {
+    // If Dapr client is not initialized (Dapr disabled), throw to trigger fallback
+    if (!this.client) {
+      throw new Error(`Dapr client not available (DAPR_ENABLED=false)`);
+    }
+
     try {
       const response = await this.client.secret.get(this.secretStoreName, secretName);
 
