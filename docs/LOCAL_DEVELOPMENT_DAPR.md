@@ -86,15 +86,16 @@ ADMIN_SERVICE_APP_ID=admin-service
 CHAT_SERVICE_APP_ID=chat-service
 
 # Service-to-Service Authentication Tokens
-AUTH_SERVICE_TOKEN=svc-auth-4ff5876fc86cc45a18d88e5d
-USER_SERVICE_TOKEN=svc-user-4ff5876fc86cc45a18d88e5d
-PRODUCT_SERVICE_TOKEN=svc-product-4ff5876fc86cc45a18d88e5d
-INVENTORY_SERVICE_TOKEN=svc-inventory-4ff5876fc86cc45a18d88e5d
-CART_SERVICE_TOKEN=svc-cart-4ff5876fc86cc45a18d88e5d
-ORDER_SERVICE_TOKEN=svc-order-4ff5876fc86cc45a18d88e5d
-REVIEW_SERVICE_TOKEN=svc-review-4ff5876fc86cc45a18d88e5d
-ADMIN_SERVICE_TOKEN=svc-admin-4ff5876fc86cc45a18d88e5d
-CHAT_SERVICE_TOKEN=svc-chat-4ff5876fc86cc45a18d88e5d
+# Pattern: SERVICE_{NAME}_TOKEN
+SERVICE_AUTH_TOKEN=svc-auth-4ff5876fc86cc45a18d88e5d
+SERVICE_USER_TOKEN=svc-user-4ff5876fc86cc45a18d88e5d
+SERVICE_PRODUCT_TOKEN=svc-product-4ff5876fc86cc45a18d88e5d
+SERVICE_INVENTORY_TOKEN=svc-inventory-4ff5876fc86cc45a18d88e5d
+SERVICE_CART_TOKEN=svc-cart-4ff5876fc86cc45a18d88e5d
+SERVICE_ORDER_TOKEN=svc-order-4ff5876fc86cc45a18d88e5d
+SERVICE_REVIEW_TOKEN=svc-review-4ff5876fc86cc45a18d88e5d
+SERVICE_ADMIN_TOKEN=svc-admin-4ff5876fc86cc45a18d88e5d
+SERVICE_CHAT_TOKEN=svc-chat-4ff5876fc86cc45a18d88e5d
 ```
 
 > **Note:** In Dapr mode, the BFF uses Dapr service invocation (via app IDs) instead of direct HTTP URLs. Dapr handles service discovery, load balancing, and mTLS automatically.

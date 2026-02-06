@@ -95,8 +95,9 @@ ADMIN_SERVICE_URL=http://localhost:3004
 CHAT_SERVICE_URL=http://localhost:3005
 
 # Service Tokens (for service-to-service authentication)
-AUTH_SERVICE_TOKEN=svc-auth-service-4ff5876fc86cc45a18d88e5d
-USER_SERVICE_TOKEN=svc-user-service-4ff5876fc86cc45a18d88e5d
+# Pattern: SERVICE_{NAME}_TOKEN
+SERVICE_AUTH_TOKEN=svc-auth-service-4ff5876fc86cc45a18d88e5d
+SERVICE_USER_TOKEN=svc-user-service-4ff5876fc86cc45a18d88e5d
 # ... (additional tokens)
 ```
 

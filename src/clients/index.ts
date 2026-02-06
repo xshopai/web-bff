@@ -3,7 +3,7 @@
  * Exports clients for external service communication
  */
 
-export { secretManager } from './dapr.secret.manager.js';
+export { secretManager } from './secret.manager.js';
 export { authClient } from './auth.client.js';
 export { userClient } from './user.client.js';
 export { productClient } from './product.client.js';
