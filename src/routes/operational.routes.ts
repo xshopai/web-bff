@@ -9,10 +9,9 @@ import * as operationalController from '@controllers/operational.controller';
 
 const router = Router();
 
-// Operational/Health Check Routes
-router.get('/health', operationalController.health);
-router.get('/readiness', operationalController.readiness);
-router.get('/liveness', operationalController.liveness);
+// Health check endpoints - Kubernetes standard convention
+router.get('/health/ready', operationalController.readiness); // Standard path
+router.get('/health/live', operationalController.liveness); // Standard path for Docker HEALTHCHECK
 router.get('/metrics', operationalController.metrics);
 
 export default router;
