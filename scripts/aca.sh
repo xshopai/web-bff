@@ -158,9 +158,9 @@ ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].v
 # This avoids race conditions with Dapr sidecar startup
 print_info "Retrieving secrets from Key Vault..."
 
-# Application Insights
-APP_INSIGHTS_CONN=$(az keyvault secret show --vault-name "$KEY_VAULT" --name "appinsights-connection" --query "value" -o tsv 2>/dev/null || echo "")
-[ -n "$APP_INSIGHTS_CONN" ] && print_success "  appinsights-connection: retrieved" || print_warning "  appinsights-connection: not configured (telemetry disabled)"
+# Per-service Application Insights (each service has its own App Insights resource)
+APP_INSIGHTS_CONN=$(az keyvault secret show --vault-name "$KEY_VAULT" --name "appinsights-web-bff" --query "value" -o tsv 2>/dev/null || echo "")
+[ -n "$APP_INSIGHTS_CONN" ] && print_success "  appinsights-web-bff: retrieved" || print_warning "  appinsights-web-bff: not configured (telemetry disabled)"
 
 # JWT secret (for validating tokens from auth-service)
 JWT_SECRET=$(az keyvault secret show --vault-name "$KEY_VAULT" --name "jwt-secret" --query "value" -o tsv 2>/dev/null || echo "")

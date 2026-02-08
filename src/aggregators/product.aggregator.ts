@@ -76,7 +76,7 @@ interface ReviewData {
  * @param skip - Number of reviews to skip (pagination)
  * @param limit - Maximum number of reviews to fetch
  * @param sort - Sort order (helpful, recent, rating)
- * @returns Reviews list with pagination
+ * @returns Reviews list with pagination and rating details
  */
 export async function getProductReviews(
   productId: string,
@@ -85,7 +85,17 @@ export async function getProductReviews(
   skip: number = 0,
   limit: number = 20,
   sort: string = 'recent'
-): Promise<{ reviews: ReviewData[]; total: number; hasMore: boolean }> {
+): Promise<{
+  reviews: ReviewData[];
+  total: number;
+  hasMore: boolean;
+  ratingDetails?: {
+    averageRating: number;
+    totalReviews: number;
+    verifiedReviewCount: number;
+    ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+  };
+}> {
   try {
     logger.info('Fetching product reviews', {
       traceId,
@@ -101,6 +111,15 @@ export async function getProductReviews(
       data?: {
         reviews?: ReviewData[];
         total?: number;
+        ratingDetails?: {
+          averageRating: number;
+          totalReviews: number;
+          verifiedReviewCount: number;
+          ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+        };
+        pagination?: {
+          total?: number;
+        };
       };
     }
 
@@ -118,8 +137,9 @@ export async function getProductReviews(
     )) as ReviewListResponse;
 
     const reviews = response.data?.reviews || [];
-    const total = response.data?.total || 0;
+    const total = response.data?.pagination?.total || response.data?.total || 0;
     const hasMore = skip + reviews.length < total;
+    const ratingDetails = response.data?.ratingDetails;
 
     logger.info('Successfully fetched product reviews', {
       traceId,
@@ -128,12 +148,14 @@ export async function getProductReviews(
       reviewCount: reviews.length,
       total,
       hasMore,
+      hasRatingDetails: !!ratingDetails,
     });
 
     return {
       reviews,
       total,
       hasMore,
+      ratingDetails,
     };
   } catch (error) {
     logger.error('Error fetching product reviews', {
