@@ -15,16 +15,6 @@ interface ProductsResponse {
   total_count?: number;
 }
 
-interface ReviewsResponse {
-  data?: unknown[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
 interface ReviewStatsResponse {
   data?: unknown;
 }
@@ -299,17 +289,18 @@ export const getAllReviews = asyncHandler(async (req: RequestWithAuth, res: Resp
     }
   }
 
-  const { reviewClient } = await import('../clients/review.client');
-  const reviews = (await reviewClient.getAllReviews(authHeaders, queryParams)) as ReviewsResponse;
+  // Use enrichment service to get reviews with user data
+  const { getReviewsWithUserData } = await import('../services/review.service');
+  const result = await getReviewsWithUserData(queryParams, authHeaders, traceId || 'unknown');
 
   res.json({
     success: true,
-    data: reviews.data || [],
-    pagination: reviews.pagination || {
-      page: 1,
-      limit: 20,
-      total: 0,
-      totalPages: 0,
+    data: result.reviews,
+    pagination: {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
     },
   });
 });

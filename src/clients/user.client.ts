@@ -198,6 +198,21 @@ export class UserClient extends DaprBaseClient {
   }
 
   /**
+   * Batch get users by IDs
+   * Used for enriching reviews, orders, etc. with user information
+   */
+  async batchGetUsers(
+    userIds: string[],
+    headers?: Record<string, string>
+  ): Promise<{ success: boolean; data: Record<string, any> }> {
+    return this.post<{ success: boolean; data: Record<string, any> }>(
+      '/api/users/batch',
+      { userIds },
+      headers || {}
+    );
+  }
+
+  /**
    * Get comprehensive dashboard statistics for users
    * This replaces multiple endpoints (getStats, getRecentUsers, getAnalytics)
    * with a single optimized call to reduce network overhead
