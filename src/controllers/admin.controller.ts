@@ -543,8 +543,13 @@ export const getReturnsPaged = asyncHandler(async (req: RequestWithAuth, res: Re
 
   res.json({
     success: true,
-    data: pagedReturns.data,
-    pagination: pagedReturns.pagination,
+    data: pagedReturns.items || [],
+    pagination: {
+      page: pagedReturns.page || 1,
+      pageSize: pagedReturns.pageSize || 20,
+      total: pagedReturns.totalItems || 0,
+      totalPages: pagedReturns.totalPages || 0,
+    },
   });
 });
 
