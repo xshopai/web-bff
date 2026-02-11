@@ -18,5 +18,7 @@ router.post('/', orderController.createOrder as unknown as RequestHandler);
 router.get('/my', orderController.getMyOrders as unknown as RequestHandler);
 router.get('/my/paged', orderController.getMyOrdersPaged as unknown as RequestHandler);
 router.get('/:id', orderController.getOrderById as unknown as RequestHandler);
+router.post('/:id/cancel', orderController.cancelOrder as unknown as RequestHandler);
+router.get('/:id/tracking', orderController.getOrderTracking as unknown as RequestHandler);
 
 export default router;

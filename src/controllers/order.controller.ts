@@ -259,3 +259,117 @@ export const getOrderById = asyncHandler(async (req: RequestWithTraceContext, re
     data: order,
   });
 });
+
+/**
+ * POST /api/orders/:id/cancel
+ * Cancel an order
+ */
+export const cancelOrder = asyncHandler(async (req: RequestWithTraceContext, res: Response) => {
+  const { traceId, spanId } = req;
+  const { id: orderId } = req.params;
+  const { cancellationReason } = req.body;
+
+  const auth = requireAuth(req, res);
+  if (!auth) return;
+
+  // Validate cancellation reason
+  if (!cancellationReason || typeof cancellationReason !== 'string') {
+    res.status(400).json({
+      success: false,
+      error: { message: 'Cancellation reason is required' },
+    });
+    return;
+  }
+
+  if (cancellationReason.trim().length < 5) {
+    res.status(400).json({
+      success: false,
+      error: { message: 'Cancellation reason must be at least 5 characters' },
+    });
+    return;
+  }
+
+  if (cancellationReason.length > 500) {
+    res.status(400).json({
+      success: false,
+      error: { message: 'Cancellation reason must be at most 500 characters' },
+    });
+    return;
+  }
+
+  logger.info('Cancelling order', {
+    traceId,
+    spanId,
+    customerId: auth.userId,
+    orderId,
+  });
+
+  const headers: Record<string, string> = {};
+  if (req.headers.authorization) {
+    headers.Authorization = req.headers.authorization;
+  }
+  if (req.correlationId) {
+    headers['X-Correlation-ID'] = req.correlationId;
+  }
+
+  const cancelledOrder = await orderClient.cancelOrder(
+    orderId,
+    { cancellationReason: cancellationReason.trim() },
+    headers
+  );
+
+  logger.info('Order cancelled successfully', {
+    traceId,
+    spanId,
+    orderId,
+    orderNumber: cancelledOrder.orderNumber,
+  });
+
+  res.json({
+    success: true,
+    data: cancelledOrder,
+  });
+});
+
+/**
+ * GET /api/orders/:id/tracking
+ * Get order tracking information
+ */
+export const getOrderTracking = asyncHandler(
+  async (req: RequestWithTraceContext, res: Response) => {
+    const { traceId, spanId } = req;
+    const { id: orderId } = req.params;
+
+    const auth = requireAuth(req, res);
+    if (!auth) return;
+
+    logger.info('Getting order tracking', {
+      traceId,
+      spanId,
+      customerId: auth.userId,
+      orderId,
+    });
+
+    const headers: Record<string, string> = {};
+    if (req.headers.authorization) {
+      headers.Authorization = req.headers.authorization;
+    }
+    if (req.correlationId) {
+      headers['X-Correlation-ID'] = req.correlationId;
+    }
+
+    const trackingInfo = await orderClient.getOrderTracking(orderId, headers);
+
+    logger.info('Order tracking retrieved successfully', {
+      traceId,
+      spanId,
+      orderId,
+      hasTracking: !!trackingInfo.trackingNumber,
+    });
+
+    res.json({
+      success: true,
+      data: trackingInfo,
+    });
+  }
+);

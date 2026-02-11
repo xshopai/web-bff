@@ -46,4 +46,11 @@ router.get('/orders/:id', adminController.getOrderById as unknown as RequestHand
 router.put('/orders/:id/status', adminController.updateOrderStatus as unknown as RequestHandler);
 router.delete('/orders/:id', adminController.deleteOrder as unknown as RequestHandler);
 
+// Return Management Routes
+router.get('/returns', adminController.getAllReturns as unknown as RequestHandler);
+router.get('/returns/paged', adminController.getReturnsPaged as unknown as RequestHandler);
+router.get('/returns/stats', adminController.getReturnStats as unknown as RequestHandler);
+router.get('/returns/:id', adminController.getReturnById as unknown as RequestHandler);
+router.put('/returns/:id/status', adminController.updateReturnStatus as unknown as RequestHandler);
+
 export default router;

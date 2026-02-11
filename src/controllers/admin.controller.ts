@@ -500,3 +500,106 @@ export const deleteOrder = asyncHandler(async (req: RequestWithAuth, res: Respon
 
   res.status(204).send();
 });
+
+// ============================================================================
+// Return Management Controllers
+// ============================================================================
+
+export const getAllReturns = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+    'X-Correlation-ID': traceId,
+  };
+
+  const { orderClient } = await import('../clients/order.client');
+  const returns = await orderClient.getAllReturns(authHeaders);
+
+  res.json({
+    success: true,
+    data: returns,
+  });
+});
+
+export const getReturnsPaged = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+    'X-Correlation-ID': traceId,
+  };
+
+  // Pass query params for pagination and filtering
+  const queryParams: Record<string, string> = {};
+  if (req.query.page) queryParams.page = req.query.page as string;
+  if (req.query.pageSize) queryParams.pageSize = req.query.pageSize as string;
+  if (req.query.status) queryParams.status = req.query.status as string;
+
+  const { orderClient } = await import('../clients/order.client');
+  const pagedReturns = await orderClient.getReturnsPaged(authHeaders, queryParams);
+
+  res.json({
+    success: true,
+    data: pagedReturns.data,
+    pagination: pagedReturns.pagination,
+  });
+});
+
+export const getReturnStats = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+    'X-Correlation-ID': traceId,
+  };
+
+  const { orderClient } = await import('../clients/order.client');
+  const stats = await orderClient.getReturnStatistics(authHeaders);
+
+  res.json({
+    success: true,
+    data: stats,
+  });
+});
+
+export const getReturnById = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+  const { id } = req.params;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+    'X-Correlation-ID': traceId,
+  };
+
+  const { orderClient } = await import('../clients/order.client');
+  const returnData = await orderClient.getReturnById(id, authHeaders);
+
+  res.json({
+    success: true,
+    data: returnData,
+  });
+});
+
+export const updateReturnStatus = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+  const { id } = req.params;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+    'X-Correlation-ID': traceId,
+  };
+
+  const { orderClient } = await import('../clients/order.client');
+  const updatedReturn = await orderClient.updateReturnStatus(id, req.body, authHeaders);
+
+  res.json({
+    success: true,
+    data: updatedReturn,
+  });
+});

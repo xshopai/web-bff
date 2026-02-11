@@ -136,6 +136,159 @@ export class OrderClient extends DaprBaseClient {
       headers
     );
   }
+
+  async cancelOrder(
+    orderId: string,
+    data: { cancellationReason: string },
+    headers: Record<string, string>
+  ): Promise<Order> {
+    return this.post<Order>(`/api/orders/${orderId}/cancel`, data, headers);
+  }
+
+  async getOrderTracking(orderId: string, headers: Record<string, string>): Promise<TrackingInfo> {
+    return this.get<TrackingInfo>(`/api/orders/${orderId}/tracking`, headers);
+  }
+
+  // Return methods (customer)
+  async createReturn(
+    returnData: CreateReturnRequest,
+    headers: Record<string, string>
+  ): Promise<ReturnResponse> {
+    return this.post<ReturnResponse>('/api/returns', returnData, headers);
+  }
+
+  async getMyReturns(headers: Record<string, string>): Promise<ReturnResponse[]> {
+    return this.get<ReturnResponse[]>('/api/returns/my', headers);
+  }
+
+  async getReturnById(returnId: string, headers: Record<string, string>): Promise<ReturnResponse> {
+    return this.get<ReturnResponse>(`/api/returns/${returnId}`, headers);
+  }
+
+  async getReturnsByOrder(
+    orderId: string,
+    headers: Record<string, string>
+  ): Promise<ReturnResponse[]> {
+    return this.get<ReturnResponse[]>(`/api/returns/order/${orderId}`, headers);
+  }
+
+  async checkReturnEligibility(
+    orderId: string,
+    headers: Record<string, string>
+  ): Promise<ReturnEligibility> {
+    return this.get<ReturnEligibility>(`/api/returns/eligibility/${orderId}`, headers);
+  }
+
+  // Return methods (admin)
+  async getAllReturns(headers: Record<string, string>): Promise<ReturnResponse[]> {
+    return this.get<ReturnResponse[]>('/api/admin/returns', headers);
+  }
+
+  async getReturnsPaged(
+    headers: Record<string, string>,
+    params?: Record<string, string>
+  ): Promise<PagedResponse<ReturnResponse>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.get<PagedResponse<ReturnResponse>>(
+      `/api/admin/returns/paged${queryString}`,
+      headers
+    );
+  }
+
+  async updateReturnStatus(
+    returnId: string,
+    data: UpdateReturnStatusRequest,
+    headers: Record<string, string>
+  ): Promise<ReturnResponse> {
+    return this.put<ReturnResponse>(`/api/admin/returns/${returnId}/status`, data, headers);
+  }
+
+  async getReturnStatistics(headers: Record<string, string>): Promise<Record<string, number>> {
+    return this.get<Record<string, number>>('/api/admin/returns/stats', headers);
+  }
+}
+
+export interface TrackingInfo {
+  carrierName?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  shippedDate?: string;
+  estimatedDeliveryDate?: string;
+  deliveredDate?: string;
+  shippingStatus: string;
+  timeline: TrackingEvent[];
+}
+
+export interface TrackingEvent {
+  status: string;
+  description: string;
+  timestamp: string;
+  location?: string;
+  isCompleted: boolean;
+}
+
+export interface CreateReturnRequest {
+  orderId: string;
+  reason: string; // ReturnReason enum value
+  description: string;
+  items: ReturnItemRequest[];
+}
+
+export interface ReturnItemRequest {
+  orderItemId: string;
+  quantityToReturn: number;
+  itemCondition?: string;
+}
+
+export interface ReturnResponse {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  customerId: string;
+  returnNumber: string;
+  status: string; // ReturnStatus enum value
+  reason: string;
+  description: string;
+  items: ReturnItemResponse[];
+  refundAmount: number;
+  shippingRefund: number;
+  totalRefund: number;
+  currency: string;
+  returnShippingCarrier?: string;
+  returnTrackingNumber?: string;
+  itemsReceivedDate?: string;
+  rejectionReason?: string;
+  inspectionNotes?: string;
+  approvedDate?: string;
+  approvedBy?: string;
+  completedDate?: string;
+  refundProcessedDate?: string;
+  processedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReturnItemResponse {
+  id: string;
+  productId: string;
+  productName: string;
+  quantityToReturn: number;
+  unitPrice: number;
+  refundAmount: number;
+  productImageUrl?: string;
+  itemCondition?: string;
+}
+
+export interface UpdateReturnStatusRequest {
+  status: string; // ReturnStatus enum value
+  notes?: string;
+  rejectionReason?: string;
+}
+
+export interface ReturnEligibility {
+  orderId: string;
+  isEligible: boolean;
+  reason: string;
 }
 
 export const orderClient = new OrderClient();
