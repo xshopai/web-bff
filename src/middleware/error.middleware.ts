@@ -29,7 +29,11 @@ export const errorMiddleware = (
     statusCode?: number;
   }
   const statusCode = (err as ErrorWithStatusCode).statusCode || 500;
-  const message = config.env === 'production' ? 'Internal server error' : err.message;
+
+  // For client errors (4xx), pass through the actual message
+  // Only mask server errors (5xx) in production
+  const shouldMaskError = statusCode >= 500 && config.env === 'production';
+  const message = shouldMaskError ? 'Internal server error' : err.message;
 
   res.status(statusCode).json({
     success: false,

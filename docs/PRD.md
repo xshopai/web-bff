@@ -6,8 +6,7 @@
 2. [Scope](#2-scope)
 3. [User Stories](#3-user-stories)
 4. [Functional Requirements](#4-functional-requirements)
-5. [Traceability Matrix](#5-traceability-matrix)
-6. [Non-Functional Requirements](#6-non-functional-requirements)
+5. [Non-Functional Requirements](#5-non-functional-requirements)
 
 ---
 
@@ -27,17 +26,7 @@ The Web BFF (Backend for Frontend) Service is an API gateway and aggregation lay
 | **Security Gateway**         | Centralize authentication/authorization for all web client requests |
 | **Error Handling**           | Provide unified error responses across all backend services         |
 
-### 1.3 Success Metrics
-
-| Metric                  | Target  | Description                                                |
-| ----------------------- | ------- | ---------------------------------------------------------- |
-| API Response Time (p95) | < 200ms | 95th percentile response time for aggregated endpoints     |
-| Service Availability    | 99.9%   | Uptime during business hours                               |
-| Error Rate              | < 0.5%  | Percentage of requests resulting in 5xx errors             |
-| Cache Hit Ratio         | > 60%   | Percentage of requests served from cache                   |
-| Backend Call Reduction  | > 40%   | Reduction in frontend-to-backend calls through aggregation |
-
-### 1.4 Target Users
+### 1.3 Target Users
 
 | User            | Interaction                                                             |
 | --------------- | ----------------------------------------------------------------------- |
@@ -388,47 +377,16 @@ The system shall provide health check endpoints for monitoring.
 
 ---
 
-## 5. Traceability Matrix
+## 5. Non-Functional Requirements
 
-| Requirement | User Story | API Endpoint                      | Test Case |
-| ----------- | ---------- | --------------------------------- | --------- |
-| REQ-4.1     | US-3.1     | `GET /api/storefront`             | TC-4.1    |
-| REQ-4.2     | US-3.2     | `GET /api/products/:id`           | TC-4.2    |
-| REQ-4.3     | US-3.2     | `GET /api/products/search`        | TC-4.3    |
-| REQ-4.4     | US-3.3     | `GET/POST/PUT/DELETE /api/cart/*` | TC-4.4    |
-| REQ-4.5     | US-3.3     | `POST /api/auth/*`                | TC-4.5    |
-| REQ-4.6     | US-3.5     | `GET/PATCH /api/users/*`          | TC-4.6    |
-| REQ-4.7     | US-3.4     | `GET/POST /api/orders/*`          | TC-4.7    |
-| REQ-4.8     | US-3.6     | `GET /api/admin/*`                | TC-4.8    |
-| REQ-4.9     | -          | `GET /health/*`                   | TC-4.9    |
-
----
-
-## 6. Non-Functional Requirements
-
-### 6.1 Performance
-
-| Requirement     | Target   | Description                                           |
-| --------------- | -------- | ----------------------------------------------------- |
-| Response Time   | < 200ms  | P95 for aggregated endpoints                          |
-| Throughput      | 1000 RPS | Concurrent request handling capacity                  |
-| Connection Pool | 100      | Maximum concurrent connections per downstream service |
-
-### 6.2 Scalability
+### 5.1 Scalability
 
 | Requirement        | Target | Description                                 |
 | ------------------ | ------ | ------------------------------------------- |
 | Horizontal Scaling | Yes    | Stateless design for horizontal pod scaling |
 | Auto-scaling       | 2-10   | Pod count based on CPU/memory thresholds    |
 
-### 6.3 Availability
-
-| Requirement          | Target | Description                                          |
-| -------------------- | ------ | ---------------------------------------------------- |
-| Service Uptime       | 99.9%  | Monthly availability target                          |
-| Graceful Degradation | Yes    | Continue serving partial data on downstream failures |
-
-### 6.4 Security
+### 5.2 Security
 
 | Requirement      | Implementation                                     |
 | ---------------- | -------------------------------------------------- |
@@ -438,7 +396,7 @@ The system shall provide health check endpoints for monitoring.
 | Rate Limiting    | IP-based rate limiting (configurable per endpoint) |
 | Input Validation | Request validation using Joi/express-validator     |
 
-### 6.5 Observability
+### 5.3 Observability
 
 | Requirement   | Implementation                         |
 | ------------- | -------------------------------------- |
@@ -447,7 +405,7 @@ The system shall provide health check endpoints for monitoring.
 | Metrics       | Prometheus-compatible metrics endpoint |
 | Health Checks | Kubernetes readiness/liveness probes   |
 
-### 6.6 Resilience
+### 5.4 Resilience
 
 | Requirement     | Implementation                                   |
 | --------------- | ------------------------------------------------ |
