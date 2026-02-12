@@ -73,13 +73,13 @@ const config: Config = {
   serviceUrls: {
     product: process.env.PRODUCT_SERVICE_URL || 'http://localhost:8001',
     inventory: process.env.INVENTORY_SERVICE_URL || 'http://localhost:8005',
-    review: process.env.REVIEW_SERVICE_URL || 'http://localhost:8008',
-    auth: process.env.AUTH_SERVICE_URL || 'http://localhost:8000',
+    review: process.env.REVIEW_SERVICE_URL || 'http://localhost:8010',
+    auth: process.env.AUTH_SERVICE_URL || 'http://localhost:8004',
     user: process.env.USER_SERVICE_URL || 'http://localhost:8002',
     cart: process.env.CART_SERVICE_URL || 'http://localhost:8008',
     order: process.env.ORDER_SERVICE_URL || 'http://localhost:8006',
-    admin: process.env.ADMIN_SERVICE_URL || 'http://localhost:8013',
-    chat: process.env.CHAT_SERVICE_URL || 'http://localhost:8012',
+    admin: process.env.ADMIN_SERVICE_URL || 'http://localhost:8003',
+    chat: process.env.CHAT_SERVICE_URL || 'http://localhost:8013',
   },
   logging: {
     level: process.env.LOG_LEVEL || 'info',
