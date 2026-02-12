@@ -62,14 +62,18 @@ class CartClient extends BaseServiceClient {
     quantity: number,
     headers: Record<string, string>
   ): Promise<Cart> {
-    return this.put<Cart>(`/api/v1/cart/items/${productId}`, { quantity }, headers);
+    return this.put<Cart>(
+      `/api/v1/cart/items/${encodeURIComponent(productId)}`,
+      { quantity },
+      headers
+    );
   }
 
   /**
    * Remove item from authenticated user's cart
    */
   async removeItem(productId: string, headers: Record<string, string>): Promise<Cart> {
-    return this.delete<Cart>(`/api/v1/cart/items/${productId}`, headers);
+    return this.delete<Cart>(`/api/v1/cart/items/${encodeURIComponent(productId)}`, headers);
   }
 
   /**
@@ -107,14 +111,18 @@ class CartClient extends BaseServiceClient {
    * Update item quantity in guest cart
    */
   async updateGuestItem(guestId: string, productId: string, quantity: number): Promise<Cart> {
-    return this.put<Cart>(`/api/v1/guest/cart/${guestId}/items/${productId}`, { quantity });
+    return this.put<Cart>(`/api/v1/guest/cart/${guestId}/items/${encodeURIComponent(productId)}`, {
+      quantity,
+    });
   }
 
   /**
    * Remove item from guest cart
    */
   async removeGuestItem(guestId: string, productId: string): Promise<Cart> {
-    return this.delete<Cart>(`/api/v1/guest/cart/${guestId}/items/${productId}`);
+    return this.delete<Cart>(
+      `/api/v1/guest/cart/${guestId}/items/${encodeURIComponent(productId)}`
+    );
   }
 
   /**
