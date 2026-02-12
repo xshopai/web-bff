@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import { HttpMethod } from '@dapr/dapr';
 import { RequestWithTraceContext } from './traceContext.middleware';
 import logger from '../core/logger';
-import { daprClient } from '../core/daprClient';
+import { serviceInvoker } from '../core/serviceInvoker';
 import config from '@/core/config';
 
 // Extend request interface to include user information
@@ -50,7 +50,7 @@ async function getJwtConfig(): Promise<{
 
   try {
     // Get JWT secret from auth service via Dapr
-    const secretStoreResponse = await daprClient.invokeService<JwtConfigResponse>(
+    const secretStoreResponse = await serviceInvoker.invokeService<JwtConfigResponse>(
       config.services.auth,
       'api/auth/config/jwt',
       HttpMethod.GET,

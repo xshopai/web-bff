@@ -5,7 +5,7 @@
 
 import { Router, RequestHandler } from 'express';
 import { HttpMethod } from '@dapr/dapr';
-import daprClient from '../core/daprClient';
+import { serviceInvoker } from '../core/serviceInvoker';
 import config from '../core/config';
 import logger, { withTraceContext } from '../core/logger';
 import { requireAuth, optionalAuth, RequestWithAuth } from '@middleware/auth.middleware';
@@ -55,7 +55,7 @@ router.post(
       const authHeader = req.headers['authorization'] as string | undefined;
 
       // Forward to chat-service with user context
-      const response = await daprClient.invokeService(
+      const response = await serviceInvoker.invokeService(
         config.services.chat,
         'api/chat/message',
         HttpMethod.POST,
@@ -115,7 +115,7 @@ router.get(
         conversationId,
       });
 
-      const response = await daprClient.invokeService(
+      const response = await serviceInvoker.invokeService(
         config.services.chat,
         `api/chat/history/${conversationId}`,
         HttpMethod.GET

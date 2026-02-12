@@ -1,4 +1,4 @@
-import { DaprBaseClient } from '../core/daprBaseClient';
+import { BaseServiceClient } from '../core/baseServiceClient';
 import config from '@/core/config';
 
 export interface Order {
@@ -60,7 +60,7 @@ export interface PagedResponse<T> {
   totalPages: number;
 }
 
-export class OrderClient extends DaprBaseClient {
+export class OrderClient extends BaseServiceClient {
   constructor() {
     super(config.services.order, 'order-service');
   }

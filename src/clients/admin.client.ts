@@ -1,4 +1,4 @@
-import { DaprBaseClient } from '../core/daprBaseClient';
+import { BaseServiceClient } from '../core/baseServiceClient';
 import config from '@/core/config';
 
 /**
@@ -6,7 +6,7 @@ import config from '@/core/config';
  * Routes all requests through admin-service, which acts as an admin gateway
  * admin-service then forwards requests to appropriate domain services
  */
-export class AdminClient extends DaprBaseClient {
+export class AdminClient extends BaseServiceClient {
   constructor() {
     super(config.services.admin, 'admin-service');
   }

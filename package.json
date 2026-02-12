@@ -5,11 +5,9 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc && tsc-alias",
-    "start": "dapr run --app-id web-bff --app-port 8014 --dapr-http-port 3514 --dapr-grpc-port 50014 --log-level warn --config ./.dapr/config.yaml --resources-path ./.dapr/components -- node dist/server.js",
-    "dev": "dapr run --app-id web-bff --app-port 8014 --dapr-http-port 3514 --dapr-grpc-port 50014 --log-level warn --config ./.dapr/config.yaml --resources-path ./.dapr/components -- npx tsx watch src/server.ts",
-    "dev:local": "npx tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "dev": "npx tsx watch src/server.ts",
     "debug": "npx tsx --inspect=9229 src/server.ts",
-    "debug:dapr": "dapr run --app-id web-bff --app-port 8014 --dapr-http-port 3514 --dapr-grpc-port 50014 --log-level warn --config ./.dapr/config.yaml --resources-path ./.dapr/components -- npx tsx --inspect=9229 src/server.ts",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:integration": "jest --testPathPattern=integration",

@@ -1,4 +1,4 @@
-import { DaprBaseClient } from '../core/daprBaseClient';
+import { BaseServiceClient } from '../core/baseServiceClient';
 import config from '@/core/config';
 
 export interface LoginRequest {
@@ -45,7 +45,7 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
-export class AuthClient extends DaprBaseClient {
+export class AuthClient extends BaseServiceClient {
   constructor() {
     super(config.services.auth, 'auth-service');
   }

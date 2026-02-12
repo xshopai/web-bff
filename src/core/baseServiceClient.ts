@@ -1,6 +1,6 @@
 import logger from './logger';
 import { HttpMethod } from '@dapr/dapr';
-import { daprClient } from './daprClient';
+import { serviceInvoker } from './serviceInvoker';
 
 /**
  * Base class for service clients
@@ -43,7 +43,7 @@ export class BaseServiceClient {
     // Only pass metadata if headers exist and are not empty
     const metadata = headers && Object.keys(headers).length > 0 ? { headers } : undefined;
 
-    const response = await daprClient.invokeService<T>(
+    const response = await serviceInvoker.invokeService<T>(
       this.appId,
       url,
       methodMap[method],

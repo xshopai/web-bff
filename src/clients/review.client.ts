@@ -1,4 +1,4 @@
-import { DaprBaseClient } from '../core/daprBaseClient';
+import { BaseServiceClient } from '../core/baseServiceClient';
 import config from '@/core/config';
 
 export interface ReviewAggregate {
@@ -14,7 +14,7 @@ export interface ReviewAggregate {
   };
 }
 
-export class ReviewClient extends DaprBaseClient {
+export class ReviewClient extends BaseServiceClient {
   constructor() {
     super(config.services.review, 'review-service');
   }

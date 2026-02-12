@@ -1,4 +1,4 @@
-import { DaprBaseClient } from '../core/daprBaseClient';
+import { BaseServiceClient } from '../core/baseServiceClient';
 import config from '@/core/config';
 
 export interface InventoryItem {
@@ -20,7 +20,7 @@ export interface InventoryStats {
   service: string;
 }
 
-export class InventoryClient extends DaprBaseClient {
+export class InventoryClient extends BaseServiceClient {
   constructor() {
     super(config.services.inventory, 'inventory-service');
   }

@@ -1,4 +1,4 @@
-import { DaprBaseClient } from '../core/daprBaseClient';
+import { BaseServiceClient } from '../core/baseServiceClient';
 import config from '@/core/config';
 
 export interface Product {
@@ -31,7 +31,7 @@ export interface StorefrontData {
   trending_categories: TrendingCategory[];
 }
 
-export class ProductClient extends DaprBaseClient {
+export class ProductClient extends BaseServiceClient {
   constructor() {
     super(config.services.product, 'product-service');
   }

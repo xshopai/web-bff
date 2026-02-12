@@ -1,4 +1,4 @@
-import { DaprBaseClient } from '../core/daprBaseClient';
+import { BaseServiceClient } from '../core/baseServiceClient';
 import config from '@/core/config';
 
 export interface UserProfile {
@@ -73,7 +73,7 @@ export interface WishlistItem {
   addedAt: string;
 }
 
-export class UserClient extends DaprBaseClient {
+export class UserClient extends BaseServiceClient {
   constructor() {
     super(config.services.user, 'user-service');
   }

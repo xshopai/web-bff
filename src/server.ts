@@ -2,13 +2,14 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Initialize Zipkin tracing BEFORE other imports
-import './tracing.js';
-
-import validateConfig from './validators/config.validator';
-
 async function startServer() {
   try {
+    // Initialize tracing AFTER dotenv (dynamic import to avoid hoisting)
+    await import('./tracing.js');
+
+    // Dynamic import to ensure env vars are loaded first
+    const { default: validateConfig } = await import('./validators/config.validator');
+
     // Validate configuration (blocking - must pass)
     validateConfig();
 
@@ -19,9 +20,10 @@ async function startServer() {
 
     const PORT = config.port;
     const HOST = config.host;
+    const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
 
     app.listen(PORT, HOST, () => {
-      logger.info(`Web BFF running on ${HOST}:${PORT} in ${config.env} mode`);
+      logger.info(`Web BFF running on ${displayHost}:${PORT} in ${config.env} mode`);
     });
 
     const gracefulShutdown = (signal: string) => {

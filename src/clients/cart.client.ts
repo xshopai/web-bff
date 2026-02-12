@@ -1,4 +1,4 @@
-import { DaprBaseClient } from '../core/daprBaseClient';
+import { BaseServiceClient } from '../core/baseServiceClient';
 import config from '@/core/config';
 import logger from '@/core/logger';
 
@@ -34,7 +34,7 @@ interface AddItemRequest {
  * Client for cart service operations
  * Last updated: 2025-11-19 17:15 - Force recompile
  */
-class CartClient extends DaprBaseClient {
+class CartClient extends BaseServiceClient {
   constructor() {
     super(config.services.cart, 'cart-service');
   }
