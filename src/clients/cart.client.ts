@@ -23,6 +23,7 @@ interface Cart {
 interface AddItemRequest {
   productId: string;
   productName: string;
+  sku?: string; // Variant SKU (e.g., WOM-CLO-TOP-001-BLACK-M) - avoids extra product-service call
   price: number;
   quantity: number;
   imageUrl?: string;
