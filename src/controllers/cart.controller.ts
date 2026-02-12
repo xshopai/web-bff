@@ -38,7 +38,7 @@ export const getCart = asyncHandler(async (req: RequestWithAuth, res: Response) 
   });
 
   const headers: Record<string, string> = {
-    'X-User-ID': req.user.id,
+    'X-User-Id': req.user.id,
     Authorization: req.headers.authorization || '',
     'X-Correlation-ID': req.correlationId || '',
   };
@@ -75,7 +75,7 @@ export const addItem = asyncHandler(async (req: RequestWithAuth, res: Response) 
   });
 
   const headers: Record<string, string> = {
-    'X-User-ID': req.user.id,
+    'X-User-Id': req.user.id,
     Authorization: req.headers.authorization || '',
     'X-Correlation-ID': req.correlationId || '',
   };
@@ -116,7 +116,7 @@ export const updateItem = asyncHandler(async (req: RequestWithAuth, res: Respons
   });
 
   const headers: Record<string, string> = {
-    'X-User-ID': req.user.id,
+    'X-User-Id': req.user.id,
     Authorization: req.headers.authorization || '',
     'X-Correlation-ID': req.correlationId || '',
   };
@@ -155,7 +155,7 @@ export const removeItem = asyncHandler(async (req: RequestWithAuth, res: Respons
   });
 
   const headers: Record<string, string> = {
-    'X-User-ID': req.user.id,
+    'X-User-Id': req.user.id,
     Authorization: req.headers.authorization || '',
     'X-Correlation-ID': req.correlationId || '',
   };
@@ -191,7 +191,7 @@ export const clearCart = asyncHandler(async (req: RequestWithAuth, res: Response
   });
 
   const headers: Record<string, string> = {
-    'X-User-ID': req.user.id,
+    'X-User-Id': req.user.id,
     Authorization: req.headers.authorization || '',
     'X-Correlation-ID': req.correlationId || '',
   };
@@ -246,9 +246,9 @@ export const transferCart = asyncHandler(async (req: RequestWithAuth, res: Respo
     hasAuthHeader: !!req.headers.authorization,
   });
 
-  // Cart service expects X-User-ID header (case-sensitive in JAX-RS)
+  // Cart service expects X-User-Id header (case-sensitive in JAX-RS)
   const headers: Record<string, string> = {
-    'X-User-ID': req.user.id,
+    'X-User-Id': req.user.id,
     Authorization: req.headers.authorization || '',
     'X-Correlation-ID': req.correlationId || '',
   };
