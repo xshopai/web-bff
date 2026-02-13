@@ -16,6 +16,7 @@ const router = Router();
 router.use(requireAuth as unknown as RequestHandler);
 
 // Customer Review Routes
+router.get('/my', reviewController.getMyReviews as unknown as RequestHandler);
 router.post('/', reviewController.createReview as unknown as RequestHandler);
 router.put('/:id', reviewController.updateReview as unknown as RequestHandler);
 router.delete('/:id', reviewController.deleteReview as unknown as RequestHandler);

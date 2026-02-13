@@ -116,6 +116,24 @@ export class ReviewClient extends BaseServiceClient {
   async bulkDeleteReviews(reviewIds: string[], headers: Record<string, string>): Promise<unknown> {
     return this.post<unknown>('/api/reviews/admin/bulk-delete', { reviewIds }, headers);
   }
+
+  /**
+   * Get authenticated user's own reviews
+   */
+  async getUserReviews(
+    headers: Record<string, string>,
+    params?: {
+      page?: number;
+      limit?: number;
+      sort?: string;
+      status?: string;
+    }
+  ): Promise<unknown> {
+    const queryString = params
+      ? '?' + new URLSearchParams(params as Record<string, string>).toString()
+      : '';
+    return this.get<unknown>(`/api/reviews/user/my-reviews${queryString}`, headers);
+  }
 }
 
 export const reviewClient = new ReviewClient();

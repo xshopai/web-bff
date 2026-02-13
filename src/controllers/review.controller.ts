@@ -131,3 +131,46 @@ export const deleteReview = asyncHandler(async (req: RequestWithAuth, res: Respo
     message: 'Review deleted successfully',
   });
 });
+
+/**
+ * GET /api/reviews/my
+ * Get authenticated user's own reviews
+ */
+export const getMyReviews = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+
+  logger.info('Fetching user reviews', {
+    traceId,
+    spanId,
+    userId: req.user?.id,
+    query: req.query,
+  });
+
+  const headers = {
+    authorization: req.get('authorization') || '',
+    'X-Correlation-Id': req.correlationId || 'no-correlation',
+    traceparent: `00-${traceId}-${spanId}-01`,
+  };
+
+  const params: Record<string, string> = {};
+  if (req.query.page) params.page = String(req.query.page);
+  if (req.query.limit) params.limit = String(req.query.limit);
+  if (req.query.sort) params.sort = String(req.query.sort);
+  if (req.query.status) params.status = String(req.query.status);
+
+  const result = (await reviewClient.getUserReviews(headers, params)) as {
+    data?: unknown;
+    success?: boolean;
+  };
+
+  logger.info('User reviews fetched successfully', {
+    traceId,
+    spanId,
+    userId: req.user?.id,
+  });
+
+  res.json({
+    success: true,
+    data: result.data,
+  });
+});
