@@ -54,9 +54,8 @@ jobs:
         run: npm run lint --if-present
         continue-on-error: true
 
-      - name: Run tests
-        run: npm test -- --passWithNoTests
-        continue-on-error: true
+      - name: Run unit tests
+        run: npm run test:unit -- --passWithNoTests
 
       - name: Build application
         run: npm run build --if-present
