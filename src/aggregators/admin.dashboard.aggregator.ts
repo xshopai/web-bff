@@ -16,6 +16,10 @@ export interface DashboardStats {
     active: number;
     newThisMonth: number;
     growth: number;
+    // Customer-specific stats (excluding admins)
+    customers: number;
+    newCustomersThisMonth: number;
+    customerGrowth: number;
   };
   orders: {
     total: number;
@@ -67,6 +71,10 @@ interface UserStatsResponse {
   active?: number;
   newThisMonth?: number;
   growth?: number;
+  // Customer-specific stats (excluding admins)
+  customers?: number;
+  newCustomersThisMonth?: number;
+  customerGrowth?: number;
   recentUsers?: RecentUser[];
 }
 
@@ -245,6 +253,10 @@ export class AdminDashboardAggregator {
           active: userStatsData.active || 0,
           newThisMonth: userStatsData.newThisMonth || 0,
           growth: userStatsData.growth || 0,
+          // Customer-specific stats (excluding admins)
+          customers: userStatsData.customers || 0,
+          newCustomersThisMonth: userStatsData.newCustomersThisMonth || 0,
+          customerGrowth: userStatsData.customerGrowth || 0,
         },
         orders: {
           total: orderStatsData.total || 0,
