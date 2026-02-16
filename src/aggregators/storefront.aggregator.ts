@@ -234,6 +234,16 @@ export class StorefrontAggregator {
         description: 'Fashion and apparel',
         image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=800',
       },
+      Accessories: {
+        displayName: 'Accessories',
+        description: 'Bags, jewelry and more',
+        image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800',
+      },
+      Apparel: {
+        displayName: 'Sports apparel',
+        description: 'Athletic wear and gear',
+        image: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800',
+      },
       Footwear: {
         displayName: 'Footwear',
         description: 'Shoes and sneakers',
@@ -266,14 +276,21 @@ export class StorefrontAggregator {
       },
     };
 
-    const metadata = categoryMetadata[category.name] || {
-      displayName: category.name,
-      description: `Browse ${category.name}`,
-      image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
-    };
+    const metadata = categoryMetadata[category.name] ||
+      categoryMetadata[
+        category.name?.charAt(0).toUpperCase() + category.name?.slice(1).toLowerCase()
+      ] || {
+        displayName: category.name,
+        description: `Browse ${category.name}`,
+        image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
+      };
 
-    // Get routing information for this category
-    const route = categoryRoutes[category.name];
+    // Get routing information for this category (case-insensitive lookup)
+    const route =
+      categoryRoutes[category.name] ||
+      categoryRoutes[
+        category.name?.charAt(0).toUpperCase() + category.name?.slice(1).toLowerCase()
+      ];
 
     // Use the product count already provided by the trending categories endpoint
     // This avoids making 5 additional API calls for product counts
