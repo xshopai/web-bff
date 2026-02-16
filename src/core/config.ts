@@ -28,6 +28,7 @@ interface Config {
     order: string;
     admin: string;
     chat: string;
+    payment: string;
   };
   serviceUrls: {
     product: string;
@@ -39,6 +40,7 @@ interface Config {
     order: string;
     admin: string;
     chat: string;
+    payment: string;
   };
   logging: {
     level: string;
@@ -69,6 +71,7 @@ const config: Config = {
     order: process.env.ORDER_SERVICE_APP_ID || 'order-service',
     admin: process.env.ADMIN_SERVICE_APP_ID || 'admin-service',
     chat: process.env.CHAT_SERVICE_APP_ID || 'chat-service',
+    payment: process.env.PAYMENT_SERVICE_APP_ID || 'payment-service',
   },
   serviceUrls: {
     product: process.env.PRODUCT_SERVICE_URL || 'http://localhost:8001',
@@ -80,6 +83,7 @@ const config: Config = {
     order: process.env.ORDER_SERVICE_URL || 'http://localhost:8006',
     admin: process.env.ADMIN_SERVICE_URL || 'http://localhost:8003',
     chat: process.env.CHAT_SERVICE_URL || 'http://localhost:8013',
+    payment: process.env.PAYMENT_SERVICE_URL || 'http://localhost:8009',
   },
   logging: {
     level: process.env.LOG_LEVEL || 'info',
