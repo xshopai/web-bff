@@ -30,6 +30,7 @@ router.get('/products/:id', adminController.getProductById as unknown as Request
 router.post('/products', adminController.createProduct as unknown as RequestHandler);
 router.patch('/products/:id', adminController.updateProduct as unknown as RequestHandler);
 router.delete('/products/:id', adminController.deleteProduct as unknown as RequestHandler);
+router.patch('/products/:id/reactivate', adminController.reactivateProduct as unknown as RequestHandler);
 
 // Review Management Routes
 router.get('/reviews', adminController.getAllReviews as unknown as RequestHandler);

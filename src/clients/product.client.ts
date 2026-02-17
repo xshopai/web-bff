@@ -99,10 +99,12 @@ export class ProductClient extends BaseServiceClient {
     params?: Record<string, string>
   ): Promise<unknown> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
+    // Use public endpoint - admin.py doesn't have GET /products
     return this.get<unknown>(`/api/products${queryString}`, headers);
   }
 
   async getProductById(productId: string, headers: Record<string, string>): Promise<unknown> {
+    // Use public endpoint - admin.py doesn't have GET /products/{id}
     return this.get<unknown>(`/api/products/${productId}`, headers);
   }
 
@@ -110,7 +112,7 @@ export class ProductClient extends BaseServiceClient {
     data: Record<string, unknown>,
     headers: Record<string, string>
   ): Promise<unknown> {
-    return this.post<unknown>('/api/products', data, headers);
+    return this.post<unknown>('/api/admin/products', data, headers);
   }
 
   async updateProduct(
@@ -118,11 +120,15 @@ export class ProductClient extends BaseServiceClient {
     data: Record<string, unknown>,
     headers: Record<string, string>
   ): Promise<unknown> {
-    return this.put<unknown>(`/api/products/${productId}`, data, headers);
+    return this.put<unknown>(`/api/admin/products/${productId}`, data, headers);
   }
 
   async deleteProduct(productId: string, headers: Record<string, string>): Promise<void> {
-    return this.delete<void>(`/api/products/${productId}`, headers);
+    return this.delete<void>(`/api/admin/products/${productId}`, headers);
+  }
+
+  async reactivateProduct(productId: string, headers: Record<string, string>): Promise<unknown> {
+    return this.patch<unknown>(`/api/admin/products/${productId}/reactivate`, {}, headers);
   }
 
   /**

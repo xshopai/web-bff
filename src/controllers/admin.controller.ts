@@ -267,6 +267,24 @@ export const deleteProduct = asyncHandler(async (req: RequestWithAuth, res: Resp
   res.status(204).send();
 });
 
+export const reactivateProduct = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+  const { id } = req.params;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+  };
+
+  const { productClient } = await import('../clients/product.client');
+  const product = await productClient.reactivateProduct(id, authHeaders);
+
+  res.json({
+    success: true,
+    data: product,
+  });
+});
+
 // ============================================================================
 // Review Management Controllers
 // ============================================================================
