@@ -64,6 +64,10 @@ export class AdminClient extends BaseServiceClient {
     return this.get<unknown>(`/api/admin/orders/${orderId}`, headers);
   }
 
+  async getOrderTracking(orderId: string, headers: Record<string, string>): Promise<unknown> {
+    return this.get<unknown>(`/api/admin/orders/${orderId}/tracking`, headers);
+  }
+
   async updateOrderStatus(
     orderId: string,
     data: Record<string, unknown>,

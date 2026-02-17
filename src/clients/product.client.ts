@@ -118,7 +118,7 @@ export class ProductClient extends BaseServiceClient {
     data: Record<string, unknown>,
     headers: Record<string, string>
   ): Promise<unknown> {
-    return this.patch<unknown>(`/api/products/${productId}`, data, headers);
+    return this.put<unknown>(`/api/products/${productId}`, data, headers);
   }
 
   async deleteProduct(productId: string, headers: Record<string, string>): Promise<void> {

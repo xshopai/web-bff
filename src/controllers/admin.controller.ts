@@ -468,6 +468,22 @@ export const getOrderById = asyncHandler(async (req: RequestWithAuth, res: Respo
   });
 });
 
+export const getOrderTracking = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+  const { id } = req.params;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+  };
+
+  const { adminClient } = await import('../clients/admin.client');
+  const tracking = await adminClient.getOrderTracking(id, authHeaders);
+
+  // admin-service already wraps response in { success, data }, forward as-is
+  res.json(tracking);
+});
+
 export const updateOrderStatus = asyncHandler(async (req: RequestWithAuth, res: Response) => {
   const { traceId, spanId } = req;
   const { id } = req.params;
