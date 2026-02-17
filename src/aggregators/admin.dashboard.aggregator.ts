@@ -336,7 +336,15 @@ export class AdminDashboardAggregator {
 
       // Return safe defaults on error
       return {
-        users: { total: 0, active: 0, newThisMonth: 0, growth: 0 },
+        users: {
+          total: 0,
+          active: 0,
+          newThisMonth: 0,
+          growth: 0,
+          customers: 0,
+          newCustomersThisMonth: 0,
+          customerGrowth: 0,
+        },
         orders: { total: 0, pending: 0, processing: 0, completed: 0, revenue: 0, growth: 0 },
         products: { total: 0, active: 0 },
         inventory: {

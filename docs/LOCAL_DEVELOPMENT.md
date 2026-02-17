@@ -84,15 +84,15 @@ LOG_TO_FILE=false
 LOG_FILE_PATH=./logs/web-bff.log
 
 # Direct Service URLs (for non-Dapr mode)
-AUTH_SERVICE_URL=http://localhost:8003
+AUTH_SERVICE_URL=http://localhost:8004
 USER_SERVICE_URL=http://localhost:8002
 PRODUCT_SERVICE_URL=http://localhost:8001
-INVENTORY_SERVICE_URL=http://localhost:8004
-CART_SERVICE_URL=http://localhost:8084
-ORDER_SERVICE_URL=http://localhost:1006
-REVIEW_SERVICE_URL=http://localhost:3003
-ADMIN_SERVICE_URL=http://localhost:3004
-CHAT_SERVICE_URL=http://localhost:3005
+INVENTORY_SERVICE_URL=http://localhost:8005
+CART_SERVICE_URL=http://localhost:8008
+ORDER_SERVICE_URL=http://localhost:8006
+REVIEW_SERVICE_URL=http://localhost:8010
+ADMIN_SERVICE_URL=http://localhost:8003
+CHAT_SERVICE_URL=http://localhost:8013
 
 # Service Tokens (for service-to-service authentication)
 # Pattern: SERVICE_{NAME}_TOKEN
@@ -157,10 +157,10 @@ npm start
 
 ```powershell
 # Basic health check
-Invoke-RestMethod -Uri "http://localhost:3100/health"
+Invoke-RestMethod -Uri "http://localhost:8014/health/ready"
 
 # Or using curl
-curl http://localhost:3100/health
+curl http://localhost:8014/health/ready
 ```
 
 **Expected Response:**

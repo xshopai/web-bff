@@ -502,6 +502,63 @@ export const deleteOrder = asyncHandler(async (req: RequestWithAuth, res: Respon
 });
 
 // ============================================================================
+// Payment Management Controllers (Admin-Driven Workflow)
+// ============================================================================
+
+export const getOrderPayment = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+  const { id } = req.params;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+  };
+
+  const { adminClient } = await import('../clients/admin.client');
+  const payment = await adminClient.getOrderPayment(id, authHeaders);
+
+  // admin-service already wraps response in { success, data }, forward as-is
+  res.json(payment);
+});
+
+export const confirmOrderPayment = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+  const { id } = req.params;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+  };
+
+  const { adminClient } = await import('../clients/admin.client');
+  const result = await adminClient.confirmOrderPayment(id, authHeaders);
+
+  // admin-service already wraps response in { success, data }, forward as-is
+  res.json(result);
+});
+
+export const rejectOrderPayment = asyncHandler(async (req: RequestWithAuth, res: Response) => {
+  const { traceId, spanId } = req;
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  const authHeaders = {
+    authorization: req.get('authorization') || '',
+    traceparent: `00-${traceId}-${spanId}-01`,
+  };
+
+  const { adminClient } = await import('../clients/admin.client');
+  const result = await adminClient.rejectOrderPayment(
+    id,
+    reason || 'Payment rejected by admin',
+    authHeaders
+  );
+
+  // admin-service already wraps response in { success, data }, forward as-is
+  res.json(result);
+});
+
+// ============================================================================
 // Return Management Controllers
 // ============================================================================
 

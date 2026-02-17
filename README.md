@@ -54,12 +54,12 @@ npm run dev
 
 ```bash
 # Check health
-curl http://localhost:3100/health
+curl http://localhost:8014/health/ready
 
 # Should return: {"status":"UP","service":"web-bff"...}
 
 # Via Dapr
-curl http://localhost:3500/v1.0/invoke/web-bff/method/health
+curl http://localhost:3500/v1.0/invoke/web-bff/method/health/ready
 ```
 
 ### Common Commands

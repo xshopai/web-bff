@@ -95,6 +95,26 @@ export class AdminClient extends BaseServiceClient {
     return this.get<unknown>(endpoint, headers);
   }
 
+  // ============================================================================
+  // Payment Admin Operations (admin-service → payment-service)
+  // ============================================================================
+
+  async getOrderPayment(orderId: string, headers: Record<string, string>): Promise<unknown> {
+    return this.get<unknown>(`/api/admin/orders/${orderId}/payment`, headers);
+  }
+
+  async confirmOrderPayment(orderId: string, headers: Record<string, string>): Promise<unknown> {
+    return this.post<unknown>(`/api/admin/orders/${orderId}/confirm-payment`, {}, headers);
+  }
+
+  async rejectOrderPayment(
+    orderId: string,
+    reason: string,
+    headers: Record<string, string>
+  ): Promise<unknown> {
+    return this.post<unknown>(`/api/admin/orders/${orderId}/fail-payment`, { reason }, headers);
+  }
+
   // TODO: Add more admin operations as needed:
   // - Product admin operations (admin-service → product-service)
   // - Review admin operations (admin-service → review-service)

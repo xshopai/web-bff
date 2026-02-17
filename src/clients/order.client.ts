@@ -41,6 +41,9 @@ export interface Address {
 
 export interface CreateOrderRequest {
   customerId: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
   items: {
     productId: string;
     productName: string;

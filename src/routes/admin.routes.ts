@@ -43,7 +43,16 @@ router.post('/reviews/bulk-delete', adminController.bulkDeleteReviews as unknown
 router.get('/orders', adminController.getAllOrders as unknown as RequestHandler);
 router.get('/orders/paged', adminController.getOrdersPaged as unknown as RequestHandler);
 router.get('/orders/:id', adminController.getOrderById as unknown as RequestHandler);
+router.get('/orders/:id/payment', adminController.getOrderPayment as unknown as RequestHandler);
 router.put('/orders/:id/status', adminController.updateOrderStatus as unknown as RequestHandler);
+router.post(
+  '/orders/:id/confirm-payment',
+  adminController.confirmOrderPayment as unknown as RequestHandler
+);
+router.post(
+  '/orders/:id/fail-payment',
+  adminController.rejectOrderPayment as unknown as RequestHandler
+);
 router.delete('/orders/:id', adminController.deleteOrder as unknown as RequestHandler);
 
 // Return Management Routes

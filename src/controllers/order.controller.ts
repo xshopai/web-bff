@@ -76,15 +76,41 @@ export const createOrder = asyncHandler(async (req: RequestWithTraceContext, res
   let customerEmail = '';
   let customerPhone = '';
 
+  // First try to get from JWT token as fallback
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+
+  if (token) {
+    try {
+      const decoded = jwt.decode(token) as {
+        email?: string;
+        name?: string;
+        firstName?: string;
+        lastName?: string;
+      } | null;
+
+      if (decoded) {
+        customerEmail = decoded.email || '';
+        customerName = decoded.name || '';
+        if (!customerName && (decoded.firstName || decoded.lastName)) {
+          customerName = `${decoded.firstName || ''} ${decoded.lastName || ''}`.trim();
+        }
+      }
+    } catch (jwtErr) {
+      logger.warn('Failed to decode JWT for customer info', { error: (jwtErr as Error).message });
+    }
+  }
+
+  // Then try to get fuller profile from user-service (may have phone, etc.)
   try {
     const { userClient } = await import('../clients/user.client');
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '');
 
     if (token) {
       const userProfile = await userClient.getProfile(token);
-      customerName = `${userProfile.firstName} ${userProfile.lastName}`.trim();
-      customerEmail = userProfile.email || '';
+      // Override with profile data if available
+      const profileName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim();
+      if (profileName) customerName = profileName;
+      if (userProfile.email) customerEmail = userProfile.email;
       customerPhone = userProfile.phoneNumber || '';
 
       logger.info('Fetched user profile for order', {
@@ -92,15 +118,18 @@ export const createOrder = asyncHandler(async (req: RequestWithTraceContext, res
         spanId,
         customerId: auth.userId,
         customerName,
-        customerPhone,
+        hasEmail: !!customerEmail,
+        hasPhone: !!customerPhone,
       });
     }
   } catch (error: unknown) {
     const err = error as Error;
-    logger.warn('Failed to fetch user profile, using JWT data only', {
+    logger.warn('Failed to fetch user profile, using JWT data', {
       traceId,
       spanId,
       error: err.message,
+      customerName,
+      hasEmail: !!customerEmail,
     });
   }
 
