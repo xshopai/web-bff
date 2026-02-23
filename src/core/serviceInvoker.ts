@@ -9,14 +9,14 @@ interface InvokeMetadata {
 /**
  * Service Invoker - handles service-to-service communication
  * Supports both Dapr service invocation and direct HTTP calls
- * Mode is determined by MESSAGING_PROVIDER config at runtime
+ * Mode is determined by SERVICE_INVOCATION_MODE config at runtime
  */
 class ServiceInvoker {
   private daprClient: DaprClient | null = null;
   private useDapr: boolean;
 
   constructor() {
-    this.useDapr = config.messagingProvider === 'dapr';
+    this.useDapr = config.serviceInvocationMode === 'dapr';
 
     if (this.useDapr) {
       logger.info('[ServiceInvoker] Using Dapr service invocation');
