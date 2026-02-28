@@ -16,7 +16,7 @@ interface Config {
   port: number;
   host: string;
   allowedOrigins: string[];
-  serviceInvocationMode: 'http' | 'dapr'; // For service-to-service calls
+  platformMode: 'direct' | 'dapr'; // For service-to-service calls
   messagingProvider: string; // 'dapr-pubsub' or 'rabbitmq' - for pub/sub events
   dapr: DaprConfig;
   services: {
@@ -54,7 +54,7 @@ const config: Config = {
   port: parseInt(process.env.PORT || '8014', 10),
   host: process.env.HOST || '0.0.0.0',
   allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
-  serviceInvocationMode: (process.env.SERVICE_INVOCATION_MODE as 'http' | 'dapr') || 'http',
+  platformMode: (process.env.PLATFORM_MODE as 'direct' | 'dapr') || 'direct',
   messagingProvider: process.env.MESSAGING_PROVIDER || 'rabbitmq',
   dapr: {
     host: process.env.DAPR_HOST || 'localhost',
