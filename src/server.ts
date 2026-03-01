@@ -17,9 +17,8 @@ async function startServer() {
     const { default: app } = await import('./app');
     const { default: config } = await import('./core/config');
     const { default: logger } = await import('./core/logger');
-    const { register: consulRegister, deregister: consulDeregister } = await import(
-      './core/consulRegistration'
-    );
+    const { register: consulRegister, deregister: consulDeregister } =
+      await import('./core/consulRegistration');
 
     const PORT = config.port;
     const HOST = config.host;

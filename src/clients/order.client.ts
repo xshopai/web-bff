@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 
 export interface Order {
   id: string;
@@ -65,7 +64,7 @@ export interface PagedResponse<T> {
 
 export class OrderClient extends BaseServiceClient {
   constructor() {
-    super(config.services.order, 'order-service');
+    super('order-service', 'order-service');
   }
 
   // Admin methods (call order-service admin endpoints)

@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 
 /**
  * AdminClient handles all admin-specific operations
@@ -8,7 +7,7 @@ import config from '@/core/config';
  */
 export class AdminClient extends BaseServiceClient {
   constructor() {
-    super(config.services.admin, 'admin-service');
+    super('admin-service', 'admin-service');
   }
 
   // ============================================================================

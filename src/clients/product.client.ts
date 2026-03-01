@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 
 export interface Product {
   id: string;
@@ -33,7 +32,7 @@ export interface StorefrontData {
 
 export class ProductClient extends BaseServiceClient {
   constructor() {
-    super(config.services.product, 'product-service');
+    super('product-service', 'product-service');
   }
 
   async getProduct(id: string): Promise<Product> {

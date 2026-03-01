@@ -9,7 +9,6 @@ import { HttpMethod } from '@dapr/dapr';
 import { RequestWithTraceContext } from './traceContext.middleware';
 import logger from '../core/logger';
 import { serviceInvoker } from '../core/serviceInvoker';
-import config from '@/core/config';
 
 // Extend request interface to include user information
 export interface RequestWithAuth extends RequestWithTraceContext {
@@ -51,7 +50,7 @@ async function getJwtConfig(): Promise<{
   try {
     // Get JWT secret from auth service via Dapr
     const secretStoreResponse = await serviceInvoker.invokeService<JwtConfigResponse>(
-      config.services.auth,
+      'auth-service',
       'api/auth/config/jwt',
       HttpMethod.GET,
       null,

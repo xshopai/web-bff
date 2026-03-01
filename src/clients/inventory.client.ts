@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 
 export interface InventoryItem {
   sku: string;
@@ -22,7 +21,7 @@ export interface InventoryStats {
 
 export class InventoryClient extends BaseServiceClient {
   constructor() {
-    super(config.services.inventory, 'inventory-service');
+    super('inventory-service', 'inventory-service');
   }
 
   async getInventory(sku: string): Promise<InventoryItem> {

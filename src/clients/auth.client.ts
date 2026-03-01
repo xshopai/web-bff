@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 
 export interface LoginRequest {
   email: string;
@@ -47,7 +46,7 @@ export interface ChangePasswordRequest {
 
 export class AuthClient extends BaseServiceClient {
   constructor() {
-    super(config.services.auth, 'auth-service');
+    super('auth-service', 'auth-service');
   }
 
   async login(data: LoginRequest, headers?: Record<string, string>): Promise<AuthResponse> {

@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 
 export interface Payment {
   id: string;
@@ -52,7 +51,7 @@ export interface RefundResult {
 
 export class PaymentClient extends BaseServiceClient {
   constructor() {
-    super(config.services.payment, 'payment-service');
+    super('payment-service', 'payment-service');
   }
 
   /**

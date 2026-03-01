@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 import logger from '@/core/logger';
 
 interface CartItem {
@@ -37,7 +36,7 @@ interface AddItemRequest {
  */
 class CartClient extends BaseServiceClient {
   constructor() {
-    super(config.services.cart, 'cart-service');
+    super('cart-service', 'cart-service');
   }
 
   /**

@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 
 export interface UserProfile {
   id: string;
@@ -75,7 +74,7 @@ export interface WishlistItem {
 
 export class UserClient extends BaseServiceClient {
   constructor() {
-    super(config.services.user, 'user-service');
+    super('user-service', 'user-service');
   }
 
   // Profile methods

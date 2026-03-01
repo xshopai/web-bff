@@ -1,5 +1,4 @@
 import { BaseServiceClient } from '../core/baseServiceClient';
-import config from '@/core/config';
 
 export interface ReviewAggregate {
   productId: string;
@@ -16,7 +15,7 @@ export interface ReviewAggregate {
 
 export class ReviewClient extends BaseServiceClient {
   constructor() {
-    super(config.services.review, 'review-service');
+    super('review-service', 'review-service');
   }
 
   async getProductReviews(productId: string): Promise<ReviewAggregate> {

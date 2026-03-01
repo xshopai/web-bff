@@ -6,7 +6,6 @@
 import { Router, RequestHandler } from 'express';
 import { HttpMethod } from '@dapr/dapr';
 import { serviceInvoker } from '../core/serviceInvoker';
-import config from '../core/config';
 import logger, { withTraceContext } from '../core/logger';
 import { requireAuth, optionalAuth, RequestWithAuth } from '@middleware/auth.middleware';
 
@@ -56,7 +55,7 @@ router.post(
 
       // Forward to chat-service with user context
       const response = await serviceInvoker.invokeService(
-        config.services.chat,
+        'chat-service',
         'api/chat/message',
         HttpMethod.POST,
         {
@@ -116,7 +115,7 @@ router.get(
       });
 
       const response = await serviceInvoker.invokeService(
-        config.services.chat,
+        'chat-service',
         `api/chat/history/${conversationId}`,
         HttpMethod.GET
       );
