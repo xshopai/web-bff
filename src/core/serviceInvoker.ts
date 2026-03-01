@@ -1,5 +1,6 @@
 import { DaprClient, HttpMethod, CommunicationProtocolEnum } from '@dapr/dapr';
 import config from '../core/config.js';
+import { resolve as resolveService } from './serviceResolver.js';
 import logger from './logger';
 
 interface InvokeMetadata {
@@ -37,22 +38,12 @@ class ServiceInvoker {
   }
 
   /**
-   * Get direct service URL for a given app ID
+   * Get direct service URL for a given app ID.
+   * Delegates to serviceResolver which uses the port registry (local)
+   * or SERVICE_BASE_URL template (Azure).
    */
   private getServiceUrl(appId: string): string {
-    const serviceUrlMap: Record<string, string> = {
-      'product-service': config.serviceUrls.product,
-      'inventory-service': config.serviceUrls.inventory,
-      'review-service': config.serviceUrls.review,
-      'auth-service': config.serviceUrls.auth,
-      'user-service': config.serviceUrls.user,
-      'cart-service': config.serviceUrls.cart,
-      'order-service': config.serviceUrls.order,
-      'admin-service': config.serviceUrls.admin,
-      'chat-service': config.serviceUrls.chat,
-    };
-
-    return serviceUrlMap[appId] || `http://${appId}:8000`;
+    return resolveService(appId);
   }
 
   /**
