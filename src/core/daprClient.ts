@@ -1,6 +1,6 @@
 import { DaprClient, HttpMethod, CommunicationProtocolEnum } from '@dapr/dapr';
 import config from '../core/config.js';
-import { resolve as resolveService } from './serviceResolver.js';
+import { resolveAsync } from './serviceResolver.js';
 import logger from './logger';
 
 interface InvokeMetadata {
@@ -39,10 +39,10 @@ class ServiceInvoker {
 
   /**
    * Get direct service URL for a given app ID.
-   * Delegates to serviceResolver (PORT_REGISTRY / SERVICE_BASE_URL / Consul cache).
+   * Queries Consul (with cache) then falls back to PORT_REGISTRY.
    */
-  private getServiceUrl(appId: string): string {
-    return resolveService(appId);
+  private async getServiceUrl(appId: string): Promise<string> {
+    return resolveAsync(appId);
   }
 
   /**
@@ -70,7 +70,7 @@ class ServiceInvoker {
         url = `http://${config.dapr.host}:${config.dapr.httpPort}/v1.0/invoke/${appId}/method/${cleanMethodName}`;
       } else {
         // Direct HTTP call
-        const serviceUrl = this.getServiceUrl(appId);
+        const serviceUrl = await this.getServiceUrl(appId);
         url = `${serviceUrl}/${cleanMethodName}`;
       }
 
