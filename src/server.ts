@@ -17,17 +17,22 @@ async function startServer() {
     const { default: app } = await import('./app');
     const { default: config } = await import('./core/config');
     const { default: logger } = await import('./core/logger');
+    const { register: consulRegister, deregister: consulDeregister } = await import(
+      './core/consulRegistration'
+    );
 
     const PORT = config.port;
     const HOST = config.host;
     const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
 
-    app.listen(PORT, HOST, () => {
+    app.listen(PORT, HOST, async () => {
       logger.info(`Web BFF running on ${displayHost}:${PORT} in ${config.env} mode`);
+      await consulRegister('web-bff', PORT, HOST);
     });
 
-    const gracefulShutdown = (signal: string) => {
+    const gracefulShutdown = async (signal: string) => {
       logger.info(`Received ${signal}. Starting graceful shutdown...`);
+      await consulDeregister();
       process.exit(0);
     };
 
