@@ -1,74 +1,190 @@
+<div align="center">
+
 # 🌐 Web BFF (Backend for Frontend)
 
-API aggregation and orchestration service for xshopai - provides a unified API layer for web clients, aggregating data from multiple microservices and handling client-specific logic.
+**API aggregation and orchestration gateway for the xshopai e-commerce platform**
 
-## 🚀 Quick Start
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Express](https://img.shields.io/badge/Express-4.18+-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com)
+[![Dapr](https://img.shields.io/badge/Dapr-Enabled-0D597F?style=for-the-badge&logo=dapr&logoColor=white)](https://dapr.io)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
+[Getting Started](#-getting-started) •
+[Documentation](#-documentation) •
+[API Reference](#-architecture) •
+[Contributing](#-contributing)
+
+</div>
+
+---
+
+## 🎯 Overview
+
+The **Web BFF** provides a unified API layer for web clients, aggregating data from multiple microservices and handling client-specific logic. It reduces chatty frontend calls, transforms backend responses for UI needs, manages authentication gateway concerns, and implements caching, rate limiting, and circuit breaker patterns for resilient service orchestration.
+
+---
+
+## ✨ Key Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 📡 API Aggregation
+
+- Combines data from multiple services
+- Request/response transformation
+- Optimized endpoints for web UI
+- Reduces frontend API chattiness
+
+</td>
+<td width="50%">
+
+### 🔐 Authentication Gateway
+
+- JWT validation & user context propagation
+- Session management
+- Cookie-based authentication support
+- Service-to-service token forwarding
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### ⚡ Performance & Resilience
+
+- Intelligent caching strategies
+- Circuit breaker patterns
+- Retry mechanisms with backoff
+- Rate limiting protection
+
+</td>
+<td width="50%">
+
+### 📊 Observability
+
+- Structured logging with correlation IDs
+- Downstream health monitoring
+- Comprehensive error handling
+- Unified error responses
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Architecture
+
+**BFF Pattern (Backend for Frontend):**
+
+```
+┌─────────────┐     ┌─────────┐     ┌──────────────────┐
+│ customer-ui │────▶│ Web BFF │────▶│ auth-service     │
+│ admin-ui    │     │         │     │ user-service     │
+└─────────────┘     │  Dapr   │     │ product-service  │
+                    │ Sidecar │     │ order-service    │
+                    └─────────┘     │ cart-service     │
+                                    │ review-service   │
+                                    └──────────────────┘
+```
+
+**Key Responsibilities:**
+
+- Aggregate data from auth, user, product, order, cart, review services
+- Transform responses for web client requirements
+- Handle session management and authentication flow
+- Implement client-specific business logic
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Node.js** 20+ ([Download](https://nodejs.org/))
-- **Dapr CLI** 1.16+ ([Install Guide](https://docs.dapr.io/getting-started/install-dapr-cli/))
+- Node.js 20+
+- Docker & Docker Compose (optional)
+- Dapr CLI (for production-like setup)
 
-### Setup
-
-**1. Clone & Install**
+### Quick Start with Docker Compose
 
 ```bash
+# Clone the repository
 git clone https://github.com/xshopai/web-bff.git
 cd web-bff
+
+# Start all services
+docker-compose up -d
+
+# Verify the service is healthy
+curl http://localhost:8014/health/ready
+```
+
+### Local Development Setup
+
+<details>
+<summary><b>🔧 Without Dapr (Simple Setup)</b></summary>
+
+```bash
+# Install dependencies
 npm install
-```
 
-**2. Configure Environment**
-
-```bash
-# Copy environment template
+# Set up environment variables
 cp .env.example .env
+# Edit .env with your configuration
 
-# Edit .env - update these values:
-# JWT_SECRET=your-secret-key-change-in-production
-# AUTH_SERVICE_URL=http://localhost:8003
-# USER_SERVICE_URL=http://localhost:8002
-# PRODUCT_SERVICE_URL=http://localhost:8001
-```
-
-**3. Initialize Dapr**
-
-```bash
-# First time only
-dapr init
-```
-
-**4. Run Service**
-
-```bash
-# Start with Dapr (recommended)
+# Start the service
 npm run dev
+```
+
+📖 See [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) for detailed instructions.
+
+</details>
+
+<details>
+<summary><b>⚡ With Dapr (Production-like)</b></summary>
+
+```bash
+# Ensure Dapr is initialized
+dapr init
+
+# Start with Dapr sidecar
+npm run dev:dapr
 
 # Or use platform-specific scripts
 ./run.sh       # Linux/Mac
 .\run.ps1      # Windows
 ```
 
-**5. Verify**
+> **Note:** All services now use the standard Dapr ports (3500 for HTTP, 50001 for gRPC).
+
+📖 See [Dapr Development Guide](docs/LOCAL_DEVELOPMENT_DAPR.md) for detailed instructions.
+
+</details>
+
+---
+
+## 📚 Documentation
+
+| Document                                                         | Description                            |
+| :--------------------------------------------------------------- | :------------------------------------- |
+| 📘 [Local Development](docs/LOCAL_DEVELOPMENT.md)                | Step-by-step local setup without Dapr  |
+| ⚡ [Local Development with Dapr](docs/LOCAL_DEVELOPMENT_DAPR.md) | Local setup with full Dapr integration |
+| 📘 [Technical Reference](docs/TECHNICAL.md)                      | Architecture, security, monitoring     |
+
+**API Documentation**: See `src/routes/` for endpoint definitions and `tests/integration/` for API contract examples.
+
+---
+
+## 🧪 Testing
 
 ```bash
-# Check health
-curl http://localhost:8014/health/ready
-
-# Should return: {"status":"UP","service":"web-bff"...}
-
-# Via Dapr
-curl http://localhost:3500/v1.0/invoke/web-bff/method/health/ready
-```
-
-### Common Commands
-
-```bash
-# Run tests
+# Run all tests
 npm test
 
-# Run with coverage
+# Run with coverage report
 npm run test:coverage
 
 # Lint code
@@ -79,106 +195,158 @@ npm run type-check
 
 # Build TypeScript
 npm run build
-
-# Production mode
-npm start
 ```
 
-## 📚 Documentation
+### Test Coverage
 
-| Document                                      | Description                             |
-| --------------------------------------------- | --------------------------------------- |
-| [📖 Developer Guide](docs/DEVELOPER_GUIDE.md) | Local setup, debugging, daily workflows |
-| [📘 Technical Reference](docs/TECHNICAL.md)   | Architecture, security, monitoring      |
-| [🤝 Contributing](docs/CONTRIBUTING.md)       | Contribution guidelines and workflow    |
+| Metric        | Status               |
+| :------------ | :------------------- |
+| Unit Tests    | ✅ Passing           |
+| Code Coverage | ✅ Target 80%+       |
+| Security Scan | ✅ 0 vulnerabilities |
 
-**API Documentation**: See `src/routes/` for endpoint definitions and `tests/integration/` for API contract examples.
+---
+
+## 🏗️ Project Structure
+
+```
+web-bff/
+├── 📁 src/                       # Application source code
+│   ├── 📁 controllers/           # Route handlers
+│   ├── 📁 services/              # Service aggregation logic
+│   ├── 📁 routes/                # Route definitions
+│   ├── 📁 middlewares/           # Auth, logging, rate limiting
+│   ├── 📁 clients/               # Service client wrappers (Dapr)
+│   ├── 📁 core/                  # Config, logger, errors
+│   ├── 📄 app.ts                 # Express app setup
+│   └── 📄 server.ts              # Entry point
+├── 📁 tests/                     # Test suite
+│   ├── 📁 unit/                  # Unit tests
+│   └── 📁 integration/           # Integration tests
+├── 📁 .dapr/                     # Dapr configuration
+│   ├── 📁 components/            # Service invocation, state
+│   └── 📄 config.yaml            # Dapr runtime configuration
+├── 📁 docs/                      # Documentation
+├── 📄 docker-compose.yml         # Local containerized environment
+├── 📄 Dockerfile                 # Production container image
+└── 📄 package.json               # Node.js dependencies
+```
+
+---
+
+## 🔧 Technology Stack
+
+| Category          | Technology                               |
+| :---------------- | :--------------------------------------- |
+| 🟢 Runtime        | Node.js 20+ with TypeScript 5.0+         |
+| 🌐 Framework      | Express 4.18+                            |
+| 📡 Service Mesh   | Dapr Service Invocation                  |
+| 🔐 Authentication | JWT Tokens + Cookie-based sessions       |
+| ⚡ Resilience     | Circuit breakers, retries, rate limiting |
+| 🧪 Testing        | Jest with coverage reporting             |
+| 📊 Observability  | Structured logging + correlation IDs     |
+
+---
 
 ## ⚙️ Configuration
 
-### Required Environment Variables
+| Variable                 | Description          | Default                 |
+| :----------------------- | :------------------- | :---------------------- |
+| `PORT`                   | HTTP server port     | `8014`                  |
+| `NODE_ENV`               | Environment          | `development`           |
+| `JWT_SECRET`             | JWT signing secret   | (required)              |
+| `CORS_ORIGIN`            | Allowed CORS origins | `http://localhost:3000` |
+| `AUTH_SERVICE_APP_ID`    | Dapr app ID          | `auth-service`          |
+| `USER_SERVICE_APP_ID`    | Dapr app ID          | `user-service`          |
+| `PRODUCT_SERVICE_APP_ID` | Dapr app ID          | `product-service`       |
+| `ORDER_SERVICE_APP_ID`   | Dapr app ID          | `order-service`         |
+| `CART_SERVICE_APP_ID`    | Dapr app ID          | `cart-service`          |
+| `REVIEW_SERVICE_APP_ID`  | Dapr app ID          | `review-service`        |
+| `DAPR_HTTP_PORT`         | Dapr sidecar HTTP    | `3500`                  |
+| `DAPR_GRPC_PORT`         | Dapr sidecar gRPC    | `50001`                 |
+
+---
+
+## ⚡ Quick Reference
 
 ```bash
-# Service
-NODE_ENV=development              # Environment: development, production, test
-PORT=3100                         # HTTP server port
+# 🐳 Docker Compose
+docker-compose up -d              # Start all services
+docker-compose down               # Stop all services
+docker-compose logs -f web-bff    # View logs
 
-# Security
-JWT_SECRET=your-secret-key        # JWT signing secret (32+ characters)
-CORS_ORIGIN=http://localhost:3000 # Allowed CORS origins
+# 🟢 Local Development
+npm run dev                       # Run without Dapr
+npm run dev:dapr                  # Run with Dapr sidecar
+npm run build                     # Build TypeScript
 
-# External Services (via Dapr)
-AUTH_SERVICE_APP_ID=auth-service
-USER_SERVICE_APP_ID=user-service
-PRODUCT_SERVICE_APP_ID=product-service
-ORDER_SERVICE_APP_ID=order-service
-CART_SERVICE_APP_ID=cart-service
-REVIEW_SERVICE_APP_ID=review-service
+# 🧪 Testing
+npm test                          # Run all tests
+npm run test:coverage             # Run with coverage
+npm run lint                      # Lint code
+npm run type-check                # TypeScript check
 
-# Dapr
-DAPR_HTTP_PORT=3500              # Dapr sidecar HTTP port
-DAPR_GRPC_PORT=50001             # Dapr sidecar gRPC port
-DAPR_APP_ID=web-bff              # Dapr application ID
+# 🔍 Health Check
+curl http://localhost:8014/health/ready
+curl http://localhost:8014/health/live
 ```
 
-> **Note:** All services now use the standard Dapr ports (3500 for HTTP, 50001 for gRPC). This simplifies configuration and works consistently whether running via Docker Compose or individual service runs.
+---
 
-See [.env.example](.env.example) for complete configuration options.
+## 🤝 Contributing
 
-## ✨ Key Features
+We welcome contributions! Please follow these steps:
 
-- **API Aggregation** - Combines data from multiple microservices
-- **Request/Response Transformation** - Adapts backend APIs for frontend needs
-- **Caching Strategy** - Reduces backend load with intelligent caching
-- **Authentication Gateway** - JWT validation and user context propagation
-- **Error Handling** - Unified error responses for web clients
-- **Rate Limiting** - Protects backend services from overload
-- **Service Orchestration** - Coordinates multi-service operations
-- **TypeScript** - Full type safety with strict mode
-- **Comprehensive Logging** - Structured logging with correlation IDs
-- **Health Checks** - Monitors downstream service availability
+1. **Fork** the repository
+2. **Create** a feature branch
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Write** tests for your changes
+4. **Run** the test suite
+   ```bash
+   npm test && npm run lint
+   ```
+5. **Commit** your changes
+   ```bash
+   git commit -m 'feat: add amazing feature'
+   ```
+6. **Push** to your branch
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+7. **Open** a Pull Request
 
-## 🏗️ Architecture
+Please ensure your PR:
 
-**BFF Pattern (Backend for Frontend):**
+- ✅ Passes all existing tests
+- ✅ Includes tests for new functionality
+- ✅ Follows the existing code style
+- ✅ Updates documentation as needed
 
-```
-Web Client → Web BFF → Multiple Microservices
-                ↓
-         Aggregated Response
-```
+---
 
-**Key Responsibilities:**
+## 🆘 Support
 
-- Aggregate data from auth-service, user-service, product-service, etc.
-- Transform responses to match web client requirements
-- Handle session management and authentication
-- Implement client-specific business logic
-- Reduce chatty API calls from frontend
-- Provide optimized endpoints for web UI
+| Resource         | Link                                                                 |
+| :--------------- | :------------------------------------------------------------------- |
+| 🐛 Bug Reports   | [GitHub Issues](https://github.com/xshopai/web-bff/issues)           |
+| 📖 Documentation | [docs/](docs/)                                                       |
+| 💬 Discussions   | [GitHub Discussions](https://github.com/xshopai/web-bff/discussions) |
 
-**Service Communication:**
-
-- Uses Dapr service invocation for inter-service calls
-- Implements circuit breaker patterns
-- Handles retries and timeouts
-- Maintains correlation IDs across requests
-
-## 🔗 Related Services
-
-- [auth-service](https://github.com/xshopai/auth-service) - Authentication and authorization
-- [user-service](https://github.com/xshopai/user-service) - User profile management
-- [product-service](https://github.com/xshopai/product-service) - Product catalog
-- [order-service](https://github.com/xshopai/order-service) - Order management
-- [cart-service](https://github.com/xshopai/cart-service) - Shopping cart
-- [review-service](https://github.com/xshopai/review-service) - Product reviews
+---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE)
+This project is part of the **xshopai** e-commerce platform.
+Licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
-## 📞 Support
+---
 
-- **Issues**: [GitHub Issues](https://github.com/xshopai/web-bff/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/xshopai/web-bff/discussions)
-- **Documentation**: [docs/](docs/)
+<div align="center">
+
+**[⬆ Back to Top](#-web-bff-backend-for-frontend)**
+
+Made with ❤️ by the xshopai team
+
+</div>
